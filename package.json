@@ -1,0 +1,48 @@
+{
+  "name": "unit-test-pulse",
+  "private": true,
+  "version": "0.1.0",
+  "files": [
+    "paseo-plugin.json",
+    "OVERVIEW.md",
+    "index.client.ts",
+    "index.client.tsx",
+    "index.server.ts",
+    "index.server.tsx",
+    "client/",
+    "server/",
+    "shared/",
+    "skills/",
+    "README.md",
+    "LICENSE",
+    "!**/*.test.mjs"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test server/*.test.mjs",
+    "test:integration": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "check": "npm run typecheck && npm test",
+    "setup:compat": "npm ci --prefix tests/compat/vitest4 --ignore-scripts"
+  },
+  "devDependencies": {
+    "@getpaseo/plugin": "0.11.2",
+    "@tanstack/react-query": "^5.90.11",
+    "@types/react": "~19.2.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "typescript": "^5.9.3",
+    "zod": "^4.4.3",
+    "@types/node": "24.0.0",
+    "vitest": "5.0.4",
+    "jest": "30.5.2"
+  },
+  "description": "Live JavaScript and TypeScript unit test diagnostics for Paseo",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0"
+  },
+  "bin": {
+    "unit-test-pulse": "server/cli.mjs"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "id": "unit-test-pulse",
+  "name": "Unit Test Pulse",
+  "description": "Live unit test progress, failures, stack traces, and logs alongside your Paseo agents.",
+  "requirements": {
+    "paseo": ">=0.11.2 <0.12.0"
+  }
+}
