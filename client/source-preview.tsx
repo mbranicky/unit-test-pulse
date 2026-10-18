@@ -10,10 +10,14 @@ export function SourcePreview({
   file,
   text,
   colors,
+  startLine = 1,
+  endLine,
 }: {
   file: string;
   text: string;
   colors: Colors;
+  startLine?: number;
+  endLine?: number;
 }) {
   const toast = useToast();
   const lines = text.replace(/\r\n/g, "\n").split("\n");
@@ -24,6 +28,7 @@ export function SourcePreview({
         style={{ color: colors.foregroundMuted, fontSize: 11, lineHeight: 17 }}
       >
         {file}
+        {endLine ? `:${startLine}–${endLine}` : ""}
         {"\n"}Read-only · current file contents
       </Text>
       <View style={{ alignSelf: "flex-start" }}>
@@ -58,7 +63,7 @@ export function SourcePreview({
             textAlign: "right",
           }}
         >
-          {lines.map((_, index) => index + 1).join("\n")}
+          {lines.map((_, index) => index + startLine).join("\n")}
         </Text>
         <Text
           selectable

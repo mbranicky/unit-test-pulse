@@ -41,6 +41,7 @@ try {
       throw new Error(
         "Use the native runner for help, listing, cache management, and report merging.",
       );
+    options.includeTaskLocation ??= true;
     options.watch = payload.watch;
     options.run = !payload.watch;
     const resolvedOptions = {
@@ -86,6 +87,7 @@ try {
       throw new Error(
         "Use the native runner for help, listing, configuration display, and cache management.",
       );
+    argv.testLocationInResults ??= true;
     const temp = mkdtempSync(join(tmpdir(), "unit-test-pulse-jest-"));
     close = async () => rmSync(temp, { recursive: true, force: true });
     process.once("exit", () => rmSync(temp, { recursive: true, force: true }));

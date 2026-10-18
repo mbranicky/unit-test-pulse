@@ -137,7 +137,19 @@ export const diagnostics = defineRpc({
     testId: z.string().optional(),
     fileId: z.string().optional(),
   }),
-  output: z.object({ text: z.string() }),
+  output: z.object({
+    text: z.string(),
+    source: z
+      .object({
+        file: z.string(),
+        text: z.string().max(1024 * 1024),
+        startLine: z.number().int().positive(),
+        endLine: z.number().int().positive(),
+      })
+      .optional(),
+    sourceNotice: z.string().optional(),
+    sourceFile: z.string().optional(),
+  }),
 });
 export const specSource = defineRpc({
   name: "source.read",

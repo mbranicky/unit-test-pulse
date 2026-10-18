@@ -35,7 +35,6 @@ export function TestRow({
           flexDirection: "row",
           gap: 8,
           alignItems: "center",
-          paddingHorizontal: 8,
           backgroundColor: pressed ? colors.surface2 : "transparent",
           borderRadius: 6,
         })}
@@ -88,9 +87,7 @@ export function TestRow({
         />
       </Pressable>
       {expanded ? (
-        <View
-          style={{ paddingLeft: 30, paddingRight: 8, gap: 7, paddingBottom: 5 }}
-        >
+        <View style={{ paddingLeft: 22, gap: 7, paddingBottom: 5 }}>
           {test.errors[0]?.message ? (
             <Text
               selectable
@@ -112,6 +109,7 @@ export function TestRow({
               label={
                 test.errors.length ? "Stack trace & details" : "Test details"
               }
+              icon="FileCode"
               colors={colors}
               onPress={onDetails}
             />

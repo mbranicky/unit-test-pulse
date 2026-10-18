@@ -22,6 +22,14 @@ type Detail = {
   title: string;
   text?: string;
   source?: { file: string; text: string };
+  testSource?: {
+    file: string;
+    text: string;
+    startLine: number;
+    endLine: number;
+  };
+  sourceNotice?: string;
+  sourceFile?: string;
   logs?: { runId: string; testId?: string; fileId?: string };
 };
 export function PulsePanel({
@@ -60,6 +68,14 @@ export function PulsePanel({
     ],
     queryFn: () =>
       read({ workspaceId, runId: selected, filter, search, offset, fileId }),
+    // Keep the search field mounted while a new result page is loading.
+    // Never carry another host, workspace, or selected run into this panel.
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[1] === host.id &&
+      previousQuery.queryKey[2] === workspaceId &&
+      previousQuery.queryKey[3] === selected
+        ? previousData
+        : undefined,
     refetchInterval: 2000,
   });
   useEffect(() => {
@@ -79,7 +95,7 @@ export function PulsePanel({
   async function details(testId?: string, selectedFileId?: string) {
     if (!run) return;
     setDetail({
-      title: "Failure details",
+      title: testId ? "Test details" : "Details",
       text: "Reading captured diagnostics…",
     });
     try {
@@ -96,6 +112,9 @@ export function PulsePanel({
             ? "File details"
             : "Run report",
         text: result.text,
+        testSource: result.source,
+        sourceNotice: result.sourceNotice,
+        sourceFile: result.sourceFile,
       });
     } catch (error) {
       setDetail({ title: "Details unavailable", text: String(error) });
@@ -153,14 +172,12 @@ export function PulsePanel({
         <Action
           label="Settings"
           icon="Settings"
-          iconOnly
           colors={colors}
           onPress={onSettings}
         />
         <Action
           label="Agent setup"
           icon="Bot"
-          iconOnly
           colors={colors}
           selected={setup}
           onPress={() => setSetup((v) => !v)}
@@ -267,31 +284,48 @@ export function PulsePanel({
             </View>
             <Divider colors={colors} />
             <View style={{ gap: 10 }}>
-              <Text
+              <View
                 style={{
-                  color: colors.foreground,
-                  fontSize: 14,
-                  fontWeight: "600",
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 4,
                 }}
               >
-                Test files
-              </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 2 }}>
-                {(["all", "failed", "flaky", "skipped"] as const).map(
-                  (value) => (
-                    <Action
-                      key={value}
-                      label={
-                        value === "skipped"
-                          ? "Skipped / Todo"
-                          : value[0].toUpperCase() + value.slice(1)
-                      }
-                      colors={colors}
-                      selected={filter === value}
-                      onPress={() => setFilter(value)}
-                    />
-                  ),
-                )}
+                <Text
+                  style={{
+                    flexGrow: 1,
+                    flexShrink: 0,
+                    color: colors.foreground,
+                    fontSize: 14,
+                    fontWeight: "600",
+                  }}
+                >
+                  Test files
+                </Text>
+                <View style={{ maxWidth: "100%", flexShrink: 0 }}>
+                  <ScrollView
+                    horizontal
+                    style={{ flexGrow: 0 }}
+                    contentContainerStyle={{ flexDirection: "row", gap: 2 }}
+                  >
+                    {(["all", "failed", "flaky", "skipped"] as const).map(
+                      (value) => (
+                        <Action
+                          key={value}
+                          label={
+                            value === "skipped"
+                              ? "Skipped / Todo"
+                              : value[0].toUpperCase() + value.slice(1)
+                          }
+                          colors={colors}
+                          selected={filter === value}
+                          onPress={() => setFilter(value)}
+                        />
+                      ),
+                    )}
+                  </ScrollView>
+                </View>
               </View>
               <TextInput
                 accessibilityLabel="Search tests and files"
@@ -317,49 +351,49 @@ export function PulsePanel({
                   onPress={() => setFileId(undefined)}
                 />
               ) : null}
+              {files.map((file) => (
+                <FileGroup
+                  key={`${run.id}:${file.id}`}
+                  file={file}
+                  tests={run.tests.filter((t) => t.fileId === file.id)}
+                  root={run.projectRoot}
+                  colors={colors}
+                  onSource={() => {
+                    void preview(file.file);
+                  }}
+                  onDetails={() => {
+                    void details(undefined, file.id);
+                  }}
+                  onTest={(test) => {
+                    void details(test.id);
+                  }}
+                  onLogs={(test) =>
+                    setDetail({
+                      title: test
+                        ? `Logs · ${test.title}`
+                        : `Logs · ${basename(file.file)}`,
+                      logs: {
+                        runId: run.id,
+                        ...(test ? { testId: test.id } : { fileId: file.id }),
+                      },
+                    })
+                  }
+                  onLoad={() => {
+                    setFileId(file.id);
+                    setFilter("all");
+                    setSearch("");
+                    setOffset(0);
+                  }}
+                />
+              ))}
+              {!files.length ? (
+                <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
+                  {live(run)
+                    ? "Waiting for test collection…"
+                    : "No matching test files."}
+                </Text>
+              ) : null}
             </View>
-            {files.map((file) => (
-              <FileGroup
-                key={`${run.id}:${file.id}`}
-                file={file}
-                tests={run.tests.filter((t) => t.fileId === file.id)}
-                root={run.projectRoot}
-                colors={colors}
-                onSource={() => {
-                  void preview(file.file);
-                }}
-                onDetails={() => {
-                  void details(undefined, file.id);
-                }}
-                onTest={(test) => {
-                  void details(test.id);
-                }}
-                onLogs={(test) =>
-                  setDetail({
-                    title: test
-                      ? `Logs · ${test.title}`
-                      : `Logs · ${basename(file.file)}`,
-                    logs: {
-                      runId: run.id,
-                      ...(test ? { testId: test.id } : { fileId: file.id }),
-                    },
-                  })
-                }
-                onLoad={() => {
-                  setFileId(file.id);
-                  setFilter("all");
-                  setSearch("");
-                  setOffset(0);
-                }}
-              />
-            ))}
-            {!files.length ? (
-              <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
-                {live(run)
-                  ? "Waiting for test collection…"
-                  : "No matching test files."}
-              </Text>
-            ) : null}
             <View
               style={{
                 flexDirection: "row",
@@ -447,6 +481,45 @@ export function PulsePanel({
           <SourcePreview {...detail.source} colors={colors} />
         ) : (
           <View style={{ gap: 12 }}>
+            {detail?.testSource || detail?.sourceNotice ? (
+              <View style={{ gap: 12 }}>
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontSize: 14,
+                    fontWeight: "600",
+                  }}
+                >
+                  Test source
+                </Text>
+                {detail.testSource ? (
+                  <SourcePreview {...detail.testSource} colors={colors} />
+                ) : (
+                  <Text
+                    style={{
+                      color: colors.foregroundMuted,
+                      fontSize: 12,
+                      lineHeight: 19,
+                    }}
+                  >
+                    {detail.sourceNotice}
+                  </Text>
+                )}
+                {detail.sourceFile ? (
+                  <View style={{ alignSelf: "flex-start" }}>
+                    <Action
+                      label="Open full file"
+                      icon="FileCode"
+                      colors={colors}
+                      onPress={() => {
+                        void preview(detail.sourceFile!);
+                      }}
+                    />
+                  </View>
+                ) : null}
+                <Divider colors={colors} />
+              </View>
+            ) : null}
             <Action
               label="Copy report"
               icon="Copy"

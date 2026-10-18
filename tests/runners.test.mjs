@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
+import { readTestSource } from "../server/test-source.mjs";
 const plugin = resolve(import.meta.dirname, "..");
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 async function fixture(t, runner, vitestPackage = "vitest") {
@@ -173,6 +174,15 @@ for (const runner of ["vitest", "jest"])
       assert.equal(run.skipped, 1);
       assert.equal(run.todo, 1);
       assert.equal(run.completed, run.total);
+      const passed = run.tests.find((item) => item.title === "passes");
+      assert.ok(
+        passed.location?.line > 0,
+        "runner supplies test source locations",
+      );
+      const source = await readTestSource(run, passed.id, f.root);
+      assert.match(source.text, /test\('passes'/);
+      assert.doesNotMatch(source.text, /test\('fails'/);
+      assert.equal(source.startLine, runner === "vitest" ? 3 : 1);
       assert.ok(
         run.tests
           .find((t) => t.status === "failed")
@@ -368,6 +378,17 @@ for (const runner of ["vitest", "jest"])
       assert.equal(run.passed, 4);
       assert.equal(run.total, 4);
       assert.equal(new Set(run.tests.map((t) => t.id)).size, 4);
+      for (const item of run.tests) {
+        const source = await readTestSource(run, item.id, f.root);
+        assert.equal(source.startLine, 1);
+        if (item.title.startsWith("case "))
+          assert.match(source.text, /^test\.each/);
+        else assert.doesNotMatch(source.text, /test\.each/);
+      }
+      assert.notEqual(
+        (await readTestSource(run, run.tests[0].id, f.root)).text,
+        (await readTestSource(run, run.tests[1].id, f.root)).text,
+      );
     },
   );
 test(

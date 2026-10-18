@@ -10,6 +10,7 @@ import {
 } from "./shared/rpc";
 import { listRuns, readRun, readLogs } from "./server/store.mjs";
 import { readSource } from "./server/source.mjs";
+import { readTestSource } from "./server/test-source.mjs";
 import { failureText } from "./server/report.mjs";
 import { installHelper, findPluginDirectory } from "./server/runtime";
 import {
@@ -146,7 +147,26 @@ export default function contribute(server: PluginServerContext) {
       .map((entry: any) => `[${entry.stream}] ${entry.text}`)
       .join("\n")
       .slice(0, 32768);
+    let source, sourceNotice;
+    const sourceFile = input.testId
+      ? run.tests.find((test: any) => test.id === input.testId)?.file
+      : undefined;
+    if (input.testId) {
+      try {
+        source = await readTestSource(
+          run,
+          input.testId,
+          workspace,
+          await findPluginDirectory(),
+        );
+      } catch (error) {
+        sourceNotice = `Test source unavailable: ${error instanceof Error ? error.message : String(error)}`;
+      }
+    }
     return {
+      source,
+      sourceNotice,
+      sourceFile,
       text:
         failureText(run, input) +
         (output

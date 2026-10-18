@@ -33,6 +33,8 @@ export function FileGroup({
   const relative = file.file.startsWith(root)
     ? file.file.slice(root.length + 1)
     : file.file;
+  const folder = relative.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
+  const subtitle = [folder, file.project].filter(Boolean).join(" · ");
   return (
     <View
       style={{
@@ -43,77 +45,99 @@ export function FileGroup({
         borderColor: colors.border,
       }}
     >
-      <View
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${open ? "Collapse" : "Expand"} ${relative}`}
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen((value) => !value)}
         style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 8,
           borderLeftWidth: 3,
           borderLeftColor: tone(file.status, colors),
+          paddingRight: 12,
+          paddingVertical: 10,
         }}
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${open ? "Collapse" : "Expand"} ${relative}`}
-          accessibilityState={{ expanded: open }}
-          onPress={() => setOpen((v) => !v)}
-          style={{
-            minHeight: 54,
-            minWidth: 40,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Icon
-            name={open ? "ChevronDown" : "ChevronRight"}
-            size={14}
-            color={colors.foregroundMuted}
-          />
-        </Pressable>
-        <View style={{ flex: 1, paddingVertical: 7, gap: 2 }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Preview ${relative}`}
-            onPress={onSource}
-            style={{ minHeight: 40, justifyContent: "center" }}
-          >
-            <Text
-              style={{
-                color: colors.foreground,
-                fontWeight: "600",
-                fontSize: 13,
-              }}
-            >
-              {basename(relative)} ↗
-            </Text>
-            <Text
-              style={{
-                color: colors.foregroundMuted,
-                fontSize: 10,
-                lineHeight: 15,
-              }}
-            >
-              {relative === basename(relative) ? file.project : relative}
-              {file.project && relative !== basename(relative)
-                ? ` · ${file.project}`
-                : ""}
-            </Text>
-          </Pressable>
-          <Text
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View
             style={{
-              color: file.failed ? colors.statusDanger : colors.foregroundMuted,
-              fontSize: 10,
-              fontVariant: ["tabular-nums"],
+              width: 31,
+              alignItems: "center",
+              alignSelf: "flex-start",
+              paddingTop: 2,
             }}
           >
-            {file.completed} / {file.total} tests
-            {file.failed ? ` · ${file.failed} failed` : ""}
-            {file.status === "running" ? " · running" : ""}
-          </Text>
+            <Icon
+              name={open ? "ChevronDown" : "ChevronRight"}
+              size={14}
+              color={colors.foregroundMuted}
+            />
+          </View>
+          <View style={{ flex: 1, gap: 3 }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Preview ${relative}`}
+              onPress={(event) => {
+                event.stopPropagation();
+                onSource();
+              }}
+              style={{
+                alignSelf: "flex-start",
+                maxWidth: "100%",
+                minHeight: 18,
+                justifyContent: "center",
+              }}
+            >
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
+                <Text
+                  style={{
+                    flexShrink: 1,
+                    color: colors.foreground,
+                    fontWeight: "600",
+                    fontSize: 13,
+                    lineHeight: 18,
+                  }}
+                >
+                  {basename(relative)}
+                </Text>
+                <Icon
+                  name="ArrowUpRight"
+                  size={12}
+                  color={colors.foregroundMuted}
+                />
+              </View>
+            </Pressable>
+            {subtitle ? (
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: colors.foregroundMuted,
+                  fontSize: 10,
+                  lineHeight: 15,
+                }}
+              >
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
         </View>
-      </View>
+        <Text
+          style={{
+            marginLeft: 31,
+            color: file.failed ? colors.statusDanger : colors.foregroundMuted,
+            fontSize: 10,
+            lineHeight: 15,
+            fontVariant: ["tabular-nums"],
+          }}
+        >
+          {file.completed} / {file.total} tests
+          {file.failed ? ` · ${file.failed} failed` : ""}
+          {file.status === "running" ? " · running" : ""}
+        </Text>
+      </Pressable>
       {open ? (
-        <View style={{ paddingHorizontal: 8, paddingBottom: 5 }}>
+        <View style={{ paddingHorizontal: 12, paddingBottom: 5 }}>
           {file.errors.length ? (
             <>
               <Text
