@@ -15,6 +15,8 @@ const files = [
   "worker.mjs",
   "vitest-reporter.mjs",
   "jest-reporter.cjs",
+  "node-runner.mjs",
+  "node-reporter.mjs",
   "channel.cjs",
 ];
 export async function findPluginDirectory(): Promise<string> {

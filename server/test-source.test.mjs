@@ -147,3 +147,41 @@ test("per-test source checks run membership and preserves workspace boundaries",
   run.tests.push({ id: "escape", file: link, ...selected("secret") });
   await assert.rejects(readTestSource(run, "escape", project), /outside/);
 });
+
+test("Node imports, CommonJS aliases, and context subtests resolve individual declarations", () => {
+  const cases = [
+    [
+      "import check, {describe as group, it as example} from 'node:test'; group('suite',()=>{example('child',()=>{});});",
+      ["suite", "child"],
+      "example('child'",
+    ],
+    [
+      "const {it: example, describe: group} = require('node:test'); group('suite',()=>{example('child',()=>{});});",
+      ["suite", "child"],
+      "example('child'",
+    ],
+    [
+      "const check = require('node:test'); check('parent',async context=>{await context.test('child',()=>{});});",
+      ["parent", "child"],
+      "context.test('child'",
+    ],
+    [
+      "import check from 'node:test'; check('parent',async t=>{await t.test('child',()=>{});});",
+      ["parent", "child"],
+      "t.test('child'",
+    ],
+    [
+      "import * as node from 'node:test'; node.describe('suite',()=>{node.it('child',()=>{});});",
+      ["suite", "child"],
+      "node.it('child'",
+    ],
+  ];
+  for (const [text, titlePath, prefix] of cases) {
+    const result = extractTestSource("example.test.mjs", text, {
+      title: "child",
+      titlePath,
+    });
+    assert.ok(result.text.startsWith(prefix), result.text);
+    assert.doesNotMatch(result.text, /describe|group|check\('parent'/);
+  }
+});

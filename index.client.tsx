@@ -26,7 +26,7 @@ export default function contribute(client: PluginClientContext) {
     id: "open-unit-test-pulse",
     title: "Open Unit Test Pulse",
     icon: "Activity",
-    keywords: ["tests", "unit", "vitest", "jest"],
+    keywords: ["tests", "unit", "vitest", "jest", "node:test", "node"],
     context: "workspace",
     onSelect({ openPanel }) {
       openPanel("pulse", { location: "explorer" });

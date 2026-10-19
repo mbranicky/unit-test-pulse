@@ -70,7 +70,13 @@ export function RunSummary({
             lineHeight: 17,
           }}
         >
-          {run.runner === "vitest" ? "Vitest" : "Jest"} {run.runnerVersion} ·{" "}
+          {(
+            { vitest: "Vitest", jest: "Jest", node: "Node.js" } as Record<
+              string,
+              string
+            >
+          )[run.runner] || run.runner}{" "}
+          {run.runnerVersion} ·{" "}
           {run.mode === "watch" ? `Watch · cycle ${run.cycle}` : "One-shot run"}
         </Text>
         {run.watching && run.endedAt ? (

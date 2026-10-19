@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 import {
   ScrollView,
   copyText,
@@ -11,7 +11,7 @@ import {
 } from "@getpaseo/plugin/client";
 import { useQuery } from "@tanstack/react-query";
 import { dashboard, diagnostics, specSource } from "../shared/rpc";
-import { Action, Divider, live, basename } from "./ui";
+import { Action, Divider, StatusIcon, tone, live, basename } from "./ui";
 import { AgentSetup } from "./setup";
 import { RunSummary } from "./run-summary";
 import { FileGroup } from "./file-group";
@@ -196,33 +196,87 @@ export function PulsePanel({
         contentContainerStyle={{ padding: layout.compact ? 12 : 16, gap: 20 }}
       >
         <AgentSetup colors={colors} hostId={host.id} expanded={setup} />
-        {history ? (
+        {history && data ? (
           <View style={{ gap: 4 }}>
-            <Text style={{ color: colors.foregroundMuted, fontSize: 11 }}>
+            <Text
+              style={{
+                color: colors.foregroundMuted,
+                fontSize: 11,
+                marginBottom: 4,
+              }}
+            >
               RECENT RUNS
             </Text>
-            {data?.runs.map((item) => (
-              <Action
+            {data.runs.map((item) => (
+              <Pressable
                 key={item.id}
-                label={`${item.runner} · cycle ${item.cycle} · ${item.status} · ${new Date(item.startedAt).toLocaleTimeString()}${item.id === run?.id ? " · selected" : ""}`}
-                colors={colors}
-                selected={item.id === run?.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: item.id === run?.id }}
                 onPress={() => {
                   setSelected(item.id);
                   setHistory(false);
                   setFileId(undefined);
                 }}
-              />
+                style={({ pressed }) => ({
+                  minHeight: 44,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  paddingHorizontal: 8,
+                  borderRadius: 6,
+                  backgroundColor:
+                    item.id === run?.id || pressed
+                      ? colors.surface1
+                      : "transparent",
+                })}
+              >
+                <StatusIcon
+                  status={item.status}
+                  size={14}
+                  color={tone(item.status, colors)}
+                />
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text
+                    numberOfLines={1}
+                    style={{ color: colors.foreground, fontSize: 12 }}
+                  >
+                    {basename(item.projectRoot)}
+                  </Text>
+                  <Text style={{ color: colors.foregroundMuted, fontSize: 10 }}>
+                    {item.runner} · {item.mode} · {item.status}
+                  </Text>
+                </View>
+                <Text
+                  style={{
+                    color: colors.foregroundMuted,
+                    fontSize: 10,
+                    fontVariant: ["tabular-nums"],
+                  }}
+                >
+                  {new Date(item.startedAt || item.updatedAt).toLocaleString(
+                    undefined,
+                    {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  )}
+                </Text>
+              </Pressable>
             ))}
-            <Action
-              label="Follow latest run"
-              colors={colors}
-              onPress={() => {
-                setSelected(undefined);
-                setHistory(false);
-                setFileId(undefined);
-              }}
-            />
+            {selected ? (
+              <Action
+                label="Follow latest run"
+                colors={colors}
+                onPress={() => {
+                  setSelected(undefined);
+                  setHistory(false);
+                  setFileId(undefined);
+                }}
+              />
+            ) : null}
+            <Divider colors={colors} />
           </View>
         ) : null}
         {query.error ? (

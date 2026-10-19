@@ -22,9 +22,18 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
   for (const statement of source.statements) {
     if (
       !ts.isImportDeclaration(statement) ||
-      !["vitest", "@jest/globals"].includes(statement.moduleSpecifier.text)
+      !["vitest", "@jest/globals", "node:test"].includes(
+        statement.moduleSpecifier.text,
+      )
     )
       continue;
+    if (
+      statement.moduleSpecifier.text === "node:test" &&
+      statement.importClause?.name
+    ) {
+      tests.add(statement.importClause.name.text);
+      namespaces.add(statement.importClause.name.text);
+    }
     const bindings = statement.importClause?.namedBindings;
     if (bindings && ts.isNamespaceImport(bindings))
       namespaces.add(bindings.name.text);
@@ -35,18 +44,52 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
         if (suites.has(name)) suites.add(item.name.text);
       }
   }
-  function root(expression) {
+  // CommonJS Node tests often alias the test function or destructure it().
+  for (const statement of source.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      const call = declaration.initializer;
+      if (
+        !call ||
+        !ts.isCallExpression(call) ||
+        !ts.isIdentifier(call.expression) ||
+        call.expression.text !== "require" ||
+        call.arguments[0]?.text !== "node:test"
+      )
+        continue;
+      if (ts.isIdentifier(declaration.name)) {
+        tests.add(declaration.name.text);
+        namespaces.add(declaration.name.text);
+      } else if (ts.isObjectBindingPattern(declaration.name)) {
+        for (const item of declaration.name.elements) {
+          if (!ts.isIdentifier(item.name)) continue;
+          const name = (item.propertyName || item.name).text;
+          if (tests.has(name)) tests.add(item.name.text);
+          if (suites.has(name)) suites.add(item.name.text);
+        }
+      }
+    }
+  }
+  function root(expression, contexts = new Set()) {
     if (ts.isIdentifier(expression)) return expression.text;
     if (ts.isPropertyAccessExpression(expression)) {
+      if (
+        ts.isIdentifier(expression.expression) &&
+        contexts.has(expression.expression.text) &&
+        expression.name.text === "test"
+      )
+        return "test";
       if (
         ts.isIdentifier(expression.expression) &&
         namespaces.has(expression.expression.text)
       )
         return expression.name.text;
-      return root(expression.expression);
+      return root(expression.expression, contexts);
     }
-    if (ts.isCallExpression(expression)) return root(expression.expression);
-    if (ts.isTaggedTemplateExpression(expression)) return root(expression.tag);
+    if (ts.isCallExpression(expression))
+      return root(expression.expression, contexts);
+    if (ts.isTaggedTemplateExpression(expression))
+      return root(expression.tag, contexts);
     return null;
   }
   const title = (node) =>
@@ -55,9 +98,9 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
       ? node.text
       : null;
   const candidates = [];
-  function visit(node, parents = []) {
+  function visit(node, parents = [], contexts = new Set()) {
     if (ts.isCallExpression(node)) {
-      const name = root(node.expression);
+      const name = root(node.expression, contexts);
       const label = title(node.arguments[0]);
       const callback = node.arguments.find(
         (arg) => ts.isArrowFunction(arg) || ts.isFunctionExpression(arg),
@@ -65,17 +108,24 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
       // Ignore factory calls such as test.each(data) and test.extend(fixtures).
       const registration = label !== null || callback;
       if (registration && suites.has(name) && callback) {
-        visit(callback.body, [...parents, label]);
+        visit(callback.body, [...parents, label], contexts);
         return;
       }
       if (registration && tests.has(name)) {
         const start = node.getStart(source),
           end = node.getEnd();
         candidates.push({ node, start, end, titles: [...parents, label] });
+        if (callback) {
+          const nested = new Set(contexts);
+          const parameter = callback.parameters[0]?.name;
+          if (parameter && ts.isIdentifier(parameter))
+            nested.add(parameter.text);
+          visit(callback.body, [...parents, label], nested);
+        }
         return;
       }
     }
-    ts.forEachChild(node, (child) => visit(child, parents));
+    ts.forEachChild(node, (child) => visit(child, parents, contexts));
   }
   visit(source);
   const path = test.titlePath || [test.title];

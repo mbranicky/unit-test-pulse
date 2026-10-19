@@ -46,11 +46,31 @@ export function readRun(id, workspace, root = stateRoot(), brief = false) {
         : "summary.json",
     ),
   );
-  if (
-    run.id !== id ||
-    !inside(realpathSync(workspace), realpathSync(run.projectRoot))
-  )
-    throw new Error("This run does not belong to the selected workspace.");
+  if (run.id !== id)
+    throw new Error(
+      "Stored run identity does not match its history directory.",
+    );
+  const workspacePath = realpathSync(workspace);
+  let projectPath;
+  try {
+    projectPath = realpathSync(run.projectRoot);
+  } catch (error) {
+    if (error.code === "ENOENT" || error.code === "ENOTDIR")
+      throw Object.assign(
+        new Error("The project for this saved run no longer exists."),
+        {
+          code: "RUN_PROJECT_MISSING",
+        },
+      );
+    throw error;
+  }
+  if (!inside(workspacePath, projectPath))
+    throw Object.assign(
+      new Error("This run does not belong to the selected workspace."),
+      {
+        code: "RUN_WORKSPACE_MISMATCH",
+      },
+    );
   if (!run.endedAt) {
     try {
       process.kill(run.ownerPid, 0);
@@ -73,6 +93,9 @@ export function readRun(id, workspace, root = stateRoot(), brief = false) {
   return run;
 }
 export function listRuns(workspace, root = stateRoot()) {
+  // The selected workspace must exist. Missing historical projects are expected
+  // after worktree cleanup and are handled separately below.
+  const workspacePath = realpathSync(workspace);
   let ids;
   try {
     ids = readdirSync(join(root, "runs"));
@@ -84,10 +107,16 @@ export function listRuns(workspace, root = stateRoot()) {
     notices = [];
   for (const id of ids.filter(validId)) {
     try {
-      const run = readRun(id, workspace, root, true);
+      const run = readRun(id, workspacePath, root, true);
       runs.push(run);
     } catch (error) {
-      if (!error.message.includes("does not belong"))
+      // A project may have been removed, or a record may disappear between
+      // directory enumeration and reading while retention cleanup runs.
+      if (
+        !["RUN_WORKSPACE_MISMATCH", "RUN_PROJECT_MISSING", "ENOENT"].includes(
+          error.code,
+        )
+      )
         notices.push(`Could not read run ${id}: ${error.message}`);
     }
   }

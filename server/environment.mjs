@@ -16,7 +16,7 @@ export function inside(root, file) {
 }
 export function discover(root) {
   const require = createRequire(join(realpathSync(root), "package.json"));
-  return ["vitest", "jest"].flatMap((runner) => {
+  const packages = ["vitest", "jest"].flatMap((runner) => {
     try {
       const file = require.resolve(`${runner}/package.json`);
       const { version } = JSON.parse(readFileSync(file, "utf8"));
@@ -27,4 +27,16 @@ export function discover(root) {
       return [];
     }
   });
+  return [
+    ...packages,
+    {
+      runner: "node",
+      version: process.versions.node,
+      executable: process.execPath,
+      supported:
+        Number(process.versions.node.split(".")[0]) === 24 ||
+        (Number(process.versions.node.split(".")[0]) === 22 &&
+          Number(process.versions.node.split(".")[1]) >= 18),
+    },
+  ];
 }

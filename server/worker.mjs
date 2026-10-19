@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { vitestReporter } from "./vitest-reporter.mjs";
+import { launchNode } from "./node-runner.mjs";
 import { plainError } from "./model.mjs";
 const payload = JSON.parse(process.env.UNIT_TEST_PULSE_PAYLOAD);
 delete process.env.UNIT_TEST_PULSE_PAYLOAD;
@@ -19,7 +20,7 @@ for (const signal of ["SIGINT", "SIGTERM"])
     send({ type: "interrupted" });
     const timeout = setTimeout(() => process.exit(130), 3000);
     timeout.unref();
-    await close().catch(() => {});
+    await close(signal).catch(() => {});
     process.exit(130);
   });
 try {
@@ -71,7 +72,13 @@ try {
       }
     }
     if (!payload.watch) await ctx.close();
-  } else {
+  } else if (payload.runner === "node") {
+    const node = launchNode(payload, send);
+    close = node.close;
+    const result = await node.done;
+    if (result.signal) send({ type: "interrupted" });
+    process.exitCode = result.code ?? 130;
+  } else if (payload.runner === "jest") {
     process.env.NODE_ENV ??= "test";
     const jestRequire = createRequire(require.resolve("jest/package.json"));
     const cli = jestRequire("jest-cli");
@@ -124,6 +131,8 @@ try {
     } finally {
       if (!payload.watch) rmSync(temp, { recursive: true, force: true });
     }
+  } else {
+    throw new Error(`Unknown runner: ${payload.runner}`);
   }
 } catch (error) {
   fatal = true;
