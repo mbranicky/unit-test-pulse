@@ -64,6 +64,8 @@ Retry counts and final errors are preserved when provided. Intermediate attempt 
 | Jest                 | 30.x                    | 30.5.2              |
 | Node.js test runner  | 22.18+ and 24.x         | 22.18.0 and 24.16.0 |
 
+Vitest 4.1.11 and 5.0.4 contain a task-update timer edge case that can leave completed tests queued until another event or file completion. For the recognized affected implementation, the helper adds a worker preload that repairs only that timer in memory. Project files and installed dependencies are not edited; existing worker preloads are preserved. Unknown or already-fixed implementations are left unchanged. Vitest's VM module cache is bridged into the same scoped repair. Regression checks cover exact timer boundaries in fork, thread, and VM pools.
+
 The helper rejects other runner majors. Other releases within these majors are integration targets, not separately verified compatibility claims. Vitest 4 is installed in an isolated development fixture to avoid mixing incompatible optional peers with Vitest 5.
 
 Real-runner checks cover partial results, assertion errors, test logs, retries, skip/todo, native-versus-monitored reporter/configuration behavior, watch reruns, startup errors, concurrent commands, and interruption. The unit and real-runner integration checks passed with Node 22.18.0 and 24.16.0. The live Paseo dark-theme panel was checked at approximately 320 px, including stack/diff reports, test logs, source previews, and filtering. Light-theme and native mobile visual checks remain pending.
@@ -105,6 +107,8 @@ npm run check
 npm run test:integration
 paseo plugin reload unit-test-pulse
 ```
+
+Live-progress integration checks hold a fixture test open until the observer has read persisted partial results. Delayed observation and staggered command startup exercise the former timing race without requiring a short overlap window. Polling stops when a runner exits unexpectedly and includes its output and the last snapshots in failures. Child processes are stopped before temporary fixture data is removed.
 
 The development fixture under `examples/vitest` deliberately contains one failing assertion and a pass on retry. It provides real panel data without changing another project:
 

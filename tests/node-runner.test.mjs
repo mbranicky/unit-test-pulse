@@ -6,6 +6,13 @@ import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { readTestSource } from "../server/test-source.mjs";
 import { discover } from "../server/environment.mjs";
+import {
+  captureProcess,
+  createGate,
+  readRuns,
+  waitForRelease,
+  waitForTelemetry,
+} from "./support/telemetry.mjs";
 
 const plugin = resolve(import.meta.dirname, "..");
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -15,21 +22,24 @@ async function fixture(
 ) {
   const root = await mkdtemp(join(tmpdir(), "pulse-node-"));
   const state = await mkdtemp(join(tmpdir(), "pulse-node-state-"));
-  t.after(() =>
-    Promise.all(
+  const commands = [];
+  t.after(async () => {
+    await Promise.all(commands.map((command) => command.stop()));
+    await Promise.all(
       [root, state].map((path) => rm(path, { recursive: true, force: true })),
-    ),
-  );
+    );
+  });
   const file = join(root, "example.test.mjs");
   await writeFile(file, body);
-  return { root, state, file };
+  return { root, state, file, commands };
 }
 function launch(
   t,
   f,
   args = [],
-  { watch = false, env = {}, automatic = false } = {},
+  { watch = false, env = {}, automatic = false, gated = false } = {},
 ) {
+  const gate = gated ? createGate(f.state) : null;
   const proc = spawn(
     process.execPath,
     [
@@ -46,64 +56,25 @@ function launch(
     ],
     {
       cwd: f.root,
-      env: { ...process.env, ...env },
+      env: {
+        ...process.env,
+        ...env,
+        ...(gate ? { UNIT_TEST_PULSE_TEST_GATE: gate.path } : {}),
+      },
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
-  let output = "",
-    closed = false;
-  proc.stdout.on("data", (chunk) => (output += chunk));
-  proc.stderr.on("data", (chunk) => (output += chunk));
-  const done = new Promise((r) =>
-    proc.once("close", (code, signal) => {
-      closed = true;
-      r({ code, signal, output });
-    }),
-  );
-  t.after(async () => {
-    if (!closed) {
-      proc.kill("SIGTERM");
-      await done;
-    }
+  const command = captureProcess(proc);
+  command.release = () => gate?.release();
+  f.commands.push(command);
+  return command;
+}
+const runs = (f) => readRuns(f.state);
+const until = (command, predicate, f) =>
+  waitForTelemetry(predicate, {
+    commands: Array.isArray(command) ? command : [command],
+    snapshot: () => runs(f),
   });
-  return {
-    proc,
-    done,
-    get output() {
-      return output;
-    },
-    get closed() {
-      return closed;
-    },
-  };
-}
-async function runs(f) {
-  try {
-    return (
-      await Promise.all(
-        (await readdir(join(f.state, "runs"))).map(async (id) =>
-          JSON.parse(
-            await readFile(join(f.state, "runs", id, "summary.json"), "utf8"),
-          ),
-        ),
-      )
-    ).sort((a, b) => a.cycle - b.cycle);
-  } catch {
-    return [];
-  }
-}
-async function until(command, predicate, f) {
-  const end = Date.now() + 20000;
-  while (Date.now() < end) {
-    const result = await predicate();
-    if (result) return result;
-    if (command.closed) break;
-    await pause(50);
-  }
-  throw new Error(
-    `Expected Node telemetry was unavailable.\nLast results: ${JSON.stringify(await runs(f))}\n${command.output}`,
-  );
-}
 
 test(
   "Node: live nested results, strict assertion details, duplicate titles, and honest file logs",
@@ -118,9 +89,10 @@ describe('shopping cart',()=>{
 });
 check('parent',async ctx=>{await ctx.test('nested child',()=>assert.ok(true));});
 for(let i=0;i<2;i++) check('same title',()=>assert.ok(true));
-check('slow',async()=>{await new Promise(r=>setTimeout(r,1200));});`;
+check('slow',{timeout:30000},${waitForRelease.toString()});`;
     const f = await fixture(t, body),
-      command = launch(t, f, ["example.test.mjs"]);
+      command = launch(t, f, ["example.test.mjs"], { gated: true });
+    await pause(1700);
     const partial = await until(
       command,
       async () => {
@@ -130,6 +102,7 @@ check('slow',async()=>{await new Promise(r=>setTimeout(r,1200));});`;
       f,
     );
     assert.equal(partial.status, "running");
+    await command.release();
     const result = await command.done;
     assert.equal(result.code, 1, result.output);
     const [run] = await runs(f);
@@ -271,7 +244,10 @@ test(
       env: nativeEnv,
       stdio: "ignore",
     });
-    const nativeCode = await new Promise((r) => native.once("close", r));
+    const baseline = captureProcess(native);
+    f.commands.push(baseline);
+    const { code: nativeCode } = await baseline.done;
+    f.commands.splice(f.commands.indexOf(baseline), 1);
     const original = await readFile(join(f.root, "custom.txt"), "utf8");
     await rm(join(f.root, "custom.txt"));
     const command = launch(t, f, args, {
@@ -393,19 +369,29 @@ test(
   async (t) => {
     const f = await fixture(
       t,
-      "import test from 'node:test'; test('quick',()=>{});test('slow',async()=>{await new Promise(r=>setTimeout(r,1500));});",
+      `import test from 'node:test'; test('quick',()=>{});test('slow',{timeout:30000},${waitForRelease.toString()});`,
     );
-    const a = launch(t, f),
-      b = launch(t, f);
+    const a = launch(t, f, [], { gated: true });
     await until(
       a,
+      async () => {
+        const [r] = await runs(f);
+        return r?.passed === 1 && !r.endedAt;
+      },
+      f,
+    );
+    await pause(1700);
+    const b = launch(t, f, [], { gated: true });
+    await until(
+      [a, b],
       async () => {
         const rs = await runs(f);
         return rs.length === 2 && rs.every((r) => r.passed === 1 && !r.endedAt);
       },
       f,
     );
-    a.proc.kill("SIGTERM");
+    await a.stop();
+    await b.release();
     const [ar, br] = await Promise.all([a.done, b.done]);
     assert.notEqual(ar.code, 0);
     assert.equal(br.code, 0, br.output);

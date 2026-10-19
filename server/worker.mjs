@@ -54,8 +54,14 @@ try {
       : await api.createVitest(resolvedOptions);
     close = () => ctx.close();
     const reporter = vitestReporter(send);
+    const progressPreload = `--import=${new URL("./vitest-progress-loader.mjs", import.meta.url).href}`;
     const attach = () => {
       if (!ctx.reporters.includes(reporter)) ctx.reporters.push(reporter);
+      for (const project of ctx.projects) {
+        const args = project.config.execArgv || [];
+        if (!args.includes(progressPreload))
+          project.config.execArgv = [progressPreload, ...args];
+      }
     };
     attach();
     ctx.onAfterSetServer(async () => {

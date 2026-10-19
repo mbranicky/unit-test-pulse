@@ -7,18 +7,34 @@ import {
   symlink,
   rm,
   readFile,
-  readdir,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
+import { pathToFileURL } from "node:url";
 import { readTestSource } from "../server/test-source.mjs";
+import {
+  captureProcess,
+  createGate,
+  readRuns,
+  waitForRelease,
+  waitForTelemetry,
+} from "./support/telemetry.mjs";
 const plugin = resolve(import.meta.dirname, "..");
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 async function fixture(t, runner, vitestPackage = "vitest") {
   const root = await mkdtemp(join(tmpdir(), `pulse-${runner}-`));
-  t.after(() => rm(root, { recursive: true, force: true }));
+
+  const state = await mkdtemp(join(tmpdir(), "pulse-telemetry-"));
+  const commands = [];
+  t.after(async () => {
+    await Promise.all(commands.map((command) => command.stop()));
+    await Promise.all(
+      [root, state].map((path) => rm(path, { recursive: true, force: true })),
+    );
+  });
+
   await mkdir(join(root, "node_modules"));
   const vitestPath =
     vitestPackage === "vitest4"
@@ -61,18 +77,17 @@ async function fixture(t, runner, vitestPackage = "vitest") {
   );
   const body =
     runner === "vitest"
-      ? `import {test,expect} from 'vitest';\nlet attempt = 0;\ntest('passes',()=>{ console.log('test-specific marker'); expect(2+2).toBe(4) });\ntest('fails',()=>{ expect({value:1}).toEqual({value:2}) });\ntest('retry pass',()=>{ expect(++attempt).toBe(2) });\ntest.skip('skipped',()=>{}); test.todo('future work');\ntest('slow',async()=>{ await new Promise(r=>setTimeout(r, 1200)); });`
-      : `test('passes',()=>{ console.log('file marker'); expect(2+2).toBe(4) });\ntest('fails',()=>{ expect({value:1}).toEqual({value:2}) });\ntest.skip('skipped',()=>{}); test.todo('future work');\ntest('slow',async()=>{ await new Promise(r=>setTimeout(r,1200)); });`;
+      ? `import {test,expect} from 'vitest';\nlet attempt = 0;\ntest('passes',()=>{ console.log('test-specific marker'); expect(2+2).toBe(4) });\ntest('fails',()=>{ expect({value:1}).toEqual({value:2}) });\ntest('retry pass',()=>{ expect(++attempt).toBe(2) });\ntest.skip('skipped',()=>{}); test.todo('future work');\ntest('slow',${waitForRelease.toString()},30000);`
+      : `test('passes',()=>{ console.log('file marker'); expect(2+2).toBe(4) });\ntest('fails',()=>{ expect({value:1}).toEqual({value:2}) });\ntest.skip('skipped',()=>{}); test.todo('future work');\ntest('slow',${waitForRelease.toString()},30000);`;
   const file = join(
     root,
     runner === "vitest" ? "example.test.ts" : "example.test.cjs",
   );
   await writeFile(file, body);
-  const state = await mkdtemp(join(tmpdir(), "pulse-telemetry-"));
-  t.after(() => rm(state, { recursive: true, force: true }));
-  return { root, file, state };
+  return { root, file, state, commands };
 }
-function launch(f, runner, watch = false) {
+function launch(f, runner, watch = false, { gated = false, env = {} } = {}) {
+  const gate = gated ? createGate(f.state) : null;
   const proc = spawn(
     process.execPath,
     [
@@ -88,41 +103,28 @@ function launch(f, runner, watch = false) {
       "--",
       ...(runner === "jest" ? ["--runInBand"] : []),
     ],
-    { cwd: f.root, stdio: ["ignore", "pipe", "pipe"] },
+    {
+      cwd: f.root,
+      env: {
+        ...process.env,
+        ...env,
+        ...(gate ? { UNIT_TEST_PULSE_TEST_GATE: gate.path } : {}),
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    },
   );
-  let text = "";
-  proc.stdout.on("data", (b) => (text += b));
-  proc.stderr.on("data", (b) => (text += b));
-  const done = new Promise((r) =>
-    proc.on("close", (code, signal) => r({ code, signal, text })),
-  );
-  return { proc, done };
+  const command = captureProcess(proc);
+  command.release = () => gate?.release();
+  f.commands.push(command);
+  return command;
 }
-async function runs(f) {
-  try {
-    const ids = await readdir(join(f.state, "runs"));
-    return (
-      await Promise.all(
-        ids.map(async (id) =>
-          JSON.parse(
-            await readFile(join(f.state, "runs", id, "summary.json"), "utf8"),
-          ),
-        ),
-      )
-    ).sort((a, b) => a.cycle - b.cycle);
-  } catch {
-    return [];
-  }
-}
-async function until(fn, limit = 20000) {
-  const end = Date.now() + limit;
-  while (Date.now() < end) {
-    const result = await fn();
-    if (result) return result;
-    await wait(100);
-  }
-  throw new Error("Timed out waiting for runner telemetry");
-}
+const runs = (f) => readRuns(f.state);
+const until = (f, predicate, timeout) =>
+  waitForTelemetry(predicate, {
+    commands: f.commands,
+    snapshot: () => runs(f),
+    ...(timeout === undefined ? {} : { timeout }),
+  });
 for (const runner of ["vitest", "jest"])
   test(
     `${runner}: real partial results, failures, logs, configuration, and existing reporters`,
@@ -144,28 +146,28 @@ for (const runner of ["vitest", "jest"])
         ],
         { cwd: f.root, stdio: "ignore" },
       );
-      await new Promise((resolve) => native.once("close", resolve));
+      const baseline = captureProcess(native);
+      f.commands.push(baseline);
+      await baseline.done;
+      f.commands.splice(f.commands.indexOf(baseline), 1);
       const baselineLoads = await readFile(
         join(f.root, "config-loads.txt"),
         "utf8",
       );
       await rm(join(f.root, "config-loads.txt"));
       await rm(join(f.root, "reporter.txt"));
-      const { proc, done } = launch(f, runner);
-      t.after(() => proc.kill("SIGTERM"));
-      let partial;
-      try {
-        partial = await until(async () => {
-          const [r] = await runs(f);
-          return r?.tests.some((t) => t.status === "passed") && !r.endedAt
-            ? r
-            : false;
-        });
-      } catch (error) {
-        const result = await done;
-        throw new Error(`${error.message}\n${result.text}`);
-      }
+      const command = launch(f, runner, false, { gated: true });
+      const { done } = command;
+      // Exercise an observer delayed past the former fixed-duration window.
+      await wait(1700);
+      const partial = await until(f, async () => {
+        const [r] = await runs(f);
+        return r?.tests.some((t) => t.status === "passed") && !r.endedAt
+          ? r
+          : false;
+      });
       assert.equal(partial.status, "running");
+      await command.release();
       const result = await done;
       assert.equal(result.code, 1, result.text);
       const [run] = await runs(f);
@@ -225,24 +227,16 @@ for (const runner of ["vitest", "jest"])
     async (t) => {
       const f = await fixture(t, runner),
         { proc, done } = launch(f, runner, true);
-      t.after(() => proc.kill("SIGTERM"));
-      let first;
-      try {
-        first = await until(async () => {
-          const [r] = await runs(f);
-          return r?.endedAt && r.watching ? r : false;
-        });
-      } catch (error) {
-        proc.kill("SIGTERM");
-        const r = await done;
-        throw new Error(`${error.message}\n${r.text}`);
-      }
+      const first = await until(f, async () => {
+        const [r] = await runs(f);
+        return r?.endedAt && r.watching ? r : false;
+      });
       await wait(500);
       await writeFile(
         f.file,
         (await readFile(f.file, "utf8")) + "\n// trigger the next cycle\n",
       );
-      const second = await until(async () => {
+      const second = await until(f, async () => {
         const rs = await runs(f);
         return rs.length >= 2 && rs[1].endedAt ? rs[1] : false;
       });
@@ -269,7 +263,6 @@ for (const runner of ["vitest", "jest"])
         "throw new Error('broken configuration marker')",
       );
       const { proc, done } = launch(f, runner);
-      t.after(() => proc.kill("SIGTERM"));
       const result = await done;
       assert.equal(result.code, 1);
       const [run] = await runs(f);
@@ -284,18 +277,10 @@ test(
   async (t) => {
     const f = await fixture(t, "vitest", "vitest4"),
       { proc, done } = launch(f, "vitest", true);
-    t.after(() => proc.kill("SIGTERM"));
-    let first;
-    try {
-      first = await until(async () => {
-        const [r] = await runs(f);
-        return r?.endedAt && r.watching ? r : false;
-      });
-    } catch (error) {
-      proc.kill("SIGTERM");
-      const r = await done;
-      throw new Error(`${error.message}\n${r.text}`);
-    }
+    const first = await until(f, async () => {
+      const [r] = await runs(f);
+      return r?.endedAt && r.watching ? r : false;
+    });
     assert.equal(first.runnerVersion, "4.1.11");
     assert.equal(first.failed, 1);
     assert.equal(first.flaky, 1);
@@ -316,7 +301,7 @@ test(
       f.file,
       (await readFile(f.file, "utf8")) + "\n// Vitest 4 rerun\n",
     );
-    const second = await until(async () => {
+    const second = await until(f, async () => {
       const rs = await runs(f);
       return rs.length >= 2 && rs[1].endedAt ? rs[1] : false;
     });
@@ -332,13 +317,23 @@ for (const runner of ["vitest", "jest"])
     { timeout: 30000 },
     async (t) => {
       const f = await fixture(t, runner);
-      const first = launch(f, runner),
-        second = launch(f, runner);
-      t.after(() => {
-        first.proc.kill("SIGTERM");
-        second.proc.kill("SIGTERM");
+      const first = launch(f, runner, false, { gated: true });
+      await until(f, async () => {
+        const [run] = await runs(f);
+        return (
+          run?.tests.some((test) => test.status === "passed") && !run.endedAt
+        );
       });
-      await until(async () => {
+      // Reproduce a second command starting after the old 1.2-second window.
+      await wait(1700);
+      const second = launch(f, runner, false, { gated: true });
+      const [beforeSecond] = await runs(f);
+      assert.equal(
+        beforeSecond.endedAt,
+        null,
+        "the first command must stay available for observation during delayed startup",
+      );
+      await until(f, async () => {
         const rs = await runs(f);
         return (
           rs.length === 2 &&
@@ -347,7 +342,8 @@ for (const runner of ["vitest", "jest"])
           )
         );
       });
-      first.proc.kill("SIGTERM");
+      await first.stop();
+      await second.release();
       const [a, b] = await Promise.all([first.done, second.done]);
       const rs = await runs(f);
       assert.equal(rs.length, 2);
@@ -371,7 +367,6 @@ for (const runner of ["vitest", "jest"])
           : "test('same title',()=>expect(1).toBe(1)); test('same title',()=>expect(2).toBe(2)); test.each([1,2])('case %s',value=>expect(value).toBeGreaterThan(0));",
       );
       const { proc, done } = launch(f, runner);
-      t.after(() => proc.kill("SIGTERM"));
       const result = await done;
       const [run] = await runs(f);
       assert.equal(result.code, 0, result.text);
@@ -436,10 +431,10 @@ test(
       ],
       { cwd: f.root, stdio: ["ignore", "pipe", "pipe"] },
     );
+    f.commands.push(captureProcess(proc));
     let text = "";
     proc.stdout.on("data", (b) => (text += b));
     proc.stderr.on("data", (b) => (text += b));
-    t.after(() => proc.kill("SIGTERM"));
     const code = await new Promise((r) => proc.once("close", r));
     assert.equal(code, 0, text);
     const [run] = await runs(f);
@@ -468,7 +463,6 @@ test(
       "module.exports={testMatch:['<rootDir>/*.test.cjs'],collectCoverage:true,coverageProvider:'v8',collectCoverageFrom:['calc.cjs'],coverageReporters:['json-summary'],coverageThreshold:{global:{branches:100,lines:100,statements:100,functions:100}}};",
     );
     const { proc, done } = launch(f, "jest");
-    t.after(() => proc.kill("SIGTERM"));
     const result = await done;
     const [run] = await runs(f);
     assert.equal(result.code, 1, result.text);
@@ -492,7 +486,6 @@ test(
       "module.exports={testMatch:['<rootDir>/*.test.cjs'],testFailureExitCode:0};",
     );
     const { proc, done } = launch(f, "jest");
-    t.after(() => proc.kill("SIGTERM"));
     const result = await done;
     const [run] = await runs(f);
     assert.equal(result.code, 0, result.text);
@@ -524,10 +517,10 @@ for (const runner of ["vitest", "jest"])
         ],
         { cwd: f.root, stdio: ["ignore", "pipe", "pipe"] },
       );
+      f.commands.push(captureProcess(proc));
       let text = "";
       proc.stdout.on("data", (b) => (text += b));
       proc.stderr.on("data", (b) => (text += b));
-      t.after(() => proc.kill("SIGTERM"));
       const code = await new Promise((r) => proc.once("close", r));
       const [run] = await runs(f);
       assert.equal(code, 0, text);
@@ -536,3 +529,56 @@ for (const runner of ["vitest", "jest"])
       assert.equal(run.total, 0);
     },
   );
+
+for (const version of ["vitest", "vitest4"])
+  for (const pool of ["forks", "threads", "vmForks", "vmThreads"])
+    test(
+      `${version}: ${pool} task updates reach the observer at exact timer boundaries`,
+      { timeout: 30000 },
+      async (t) => {
+        const f = await fixture(t, "vitest", version);
+        const preload = join(f.root, "clock-boundary.mjs");
+        await writeFile(
+          preload,
+          "const now=Date.now; Date.now=()=>Math.floor(now()/100)*100; globalThis.pulsePreload=true;\n",
+        );
+        if (pool.startsWith("vm"))
+          await writeFile(
+            join(f.root, "clock-environment.mjs"),
+            `import {builtinEnvironments} from 'vitest/runtime'; import {runInContext} from 'node:vm'; export default {...builtinEnvironments.node, async setupVM(...args) {const env=await builtinEnvironments.node.setupVM(...args); runInContext("const now=Date.now; Date.now=()=>Math.floor(now()/100)*100",env.getVmContext()); return env;}};`,
+          );
+        const configFile = join(f.root, "vitest.config.ts");
+        const config = await readFile(configFile, "utf8");
+        await writeFile(
+          configFile,
+          config.replace(
+            "retry: 1",
+            `retry: 1, pool: ${JSON.stringify(pool)}, ${pool.startsWith("vm") ? 'environment: "./clock-environment.mjs",' : ""} execArgv: ${JSON.stringify([`--import=${pathToFileURL(preload).href}`])}`,
+          ),
+        );
+        await writeFile(
+          f.file,
+          (await readFile(f.file, "utf8")).replace(
+            "expect(2+2)",
+            "expect(globalThis.pulsePreload).toBe(true); expect(2+2)",
+          ),
+        );
+        const command = launch(f, "vitest", false, { gated: true });
+        const partial = await until(f, async () => {
+          const [run] = await runs(f);
+          return run?.tests.some(
+            (test) => test.title === "passes" && test.status === "passed",
+          ) && !run.endedAt
+            ? run
+            : false;
+        });
+        assert.equal(partial.status, "running");
+        await command.release();
+        const result = await command.done;
+        assert.equal(result.code, 1, result.text);
+        const [final] = await runs(f);
+        assert.equal(final.failed, 1);
+        assert.equal(final.flaky, 1);
+        assert.equal(final.completed, final.total);
+      },
+    );

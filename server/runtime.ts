@@ -14,6 +14,8 @@ const files = [
   "model.mjs",
   "worker.mjs",
   "vitest-reporter.mjs",
+  "vitest-progress.mjs",
+  "vitest-progress-loader.mjs",
   "jest-reporter.cjs",
   "node-runner.mjs",
   "node-reporter.mjs",
