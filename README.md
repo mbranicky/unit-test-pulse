@@ -2,7 +2,7 @@
 
 Follow JavaScript and TypeScript unit tests in Paseo while an agent works. Inspect live results grouped by test file, assertion failures, stack traces, current source, and captured output from the same panel.
 
-**Status:** early build, version 0.2.1, with live Vitest, Jest, and Node.js test-runner monitoring. Tested versions and current limitations are listed below.
+**Status:** early build, version 0.3.0, with live Vitest, Jest, and Node.js test-runner monitoring. Tested versions and current limitations are listed below.
 
 ## Get started
 

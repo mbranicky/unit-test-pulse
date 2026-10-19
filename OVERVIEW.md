@@ -2,7 +2,7 @@
 
 Unit Test Pulse follows JavaScript and TypeScript unit tests beside your Paseo agents. The workspace panel shows live results grouped by file, failure messages, stack traces, assertion details, current source previews, and captured logs. A header indicator keeps execution visible when the panel is closed.
 
-Version 0.2.1 integrates with Vitest 4/5, Jest 30, and Node.js 22.18+/24 built-in tests through a local helper. Vitest/Jest use the tested project's installed runner; Node tests use the helper's Node executable without installing a framework. The panel's optional agent skill explains how to launch monitored tests while retaining the project's normal environment and prerequisites. Existing uninstrumented commands cannot be attached after launch.
+Version 0.3.0 integrates with Vitest 4/5, Jest 30, and Node.js 22.18+/24 built-in tests through a local helper. Vitest/Jest use the tested project's installed runner; Node tests use the helper's Node executable without installing a framework. The panel's optional agent skill explains how to launch monitored tests while retaining the project's normal environment and prerequisites. Existing uninstrumented commands cannot be attached after launch.
 
 Each watch cycle is a separate result, with an idle state between cycles. Concurrent commands retain independent identities. Filters and search narrow the displayed tests while run counts remain complete for the captured execution. Failure reports and paged output can be copied for debugging.
 
