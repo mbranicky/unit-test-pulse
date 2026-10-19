@@ -2,7 +2,21 @@
 
 Follow JavaScript and TypeScript unit tests in Paseo while an agent works. Inspect live results grouped by test file, assertion failures, stack traces, current source, and captured output from the same panel.
 
-**Status:** early build, version 0.3.0, with live Vitest, Jest, and Node.js test-runner monitoring. Tested versions and current limitations are listed below.
+**Status:** early build, version 0.4.0, with live Vitest, Jest, and Node.js test-runner monitoring. Tested versions and current limitations are listed below.
+
+<p>
+  <img src="assets/running.png" width="360" alt="Unit Test Pulse showing completed outcomes and a test still running in the storefront example">
+  <img src="assets/failure.png" width="360" alt="Completed storefront run with the welcome-discount assertion failure expanded, plus passed, flaky, skipped and todo results">
+</p>
+
+These are real Paseo 0.12.0 desktop captures on macOS, using an isolated storefront example. One assertion deliberately fails and another passes after retrying. Captures are cropped to the plugin panel, preview dialog, or settings content.
+
+<details>
+<summary>Light theme example</summary>
+
+<img src="assets/light.png" width="400" alt="Unit Test Pulse storefront failure details in Paseo's Light theme">
+
+</details>
 
 ## Get started
 
@@ -15,6 +29,8 @@ paseo plugin install /absolute/path/to/unit-test-pulse
 Open **Unit Test Pulse** in a workspace through the Command Center. Choose **Install skill** to make its instructions available to new agent sessions. Existing skill files owned by another installation are left unchanged.
 
 For example: “Use Unit Test Pulse to run the unit tests, preserving this project's usual environment and test selection.”
+
+<img src="assets/skill-setup.png" width="400" alt="Agent setup showing the installed Unit Test Pulse skill and its user-level folders">
 
 The plugin installs a dependency-free helper on the daemon host:
 
@@ -50,25 +66,49 @@ Node assertion reports keep the original assertion stack and formatted expected/
 - **Run output** contains stdout/stderr plus separately captured console records. Log views support text search, stream filters, following the latest 100 records, pausing to browse pages, and copying a page.
 - The workspace header indicates active runs and recent outcomes even when the panel is closed.
 
+<details>
+<summary>Recent runs across test runners</summary>
+
+<img src="assets/recent-runs.png" width="400" alt="Recent Vitest, Jest, and built-in Node test runs with status icons, runner identity, dates and the selected run highlighted">
+
+</details>
+
+<details>
+<summary>Test details and captured logs</summary>
+
+<img src="assets/test-details.png" width="720" alt="Selected test declaration with original line numbers, Copy source, Open full file, assertion values, and stack trace in the test-details dialog">
+<img src="assets/logs.png" width="720" alt="Captured console logs with search, stream filters, following controls, and messages from both inventory lookup attempts">
+
+</details>
+
+<details>
+<summary>Full test file source preview</summary>
+
+<img src="assets/source-preview.png" width="720" alt="Read-only cart.test.ts source preview with original line numbers and Copy source">
+
+</details>
+
 Console records carry only identities provided by the runner. Vitest can supply test-attributed output. Jest console buffers, when supplied, are file-scoped and may arrive at file completion; Node.js stdout/stderr and diagnostics supplied by the runner are file-scoped. Unassigned process stdout/stderr remains run-scoped. Silent mode and custom environments can suppress console records. Empty test logs do not establish that a test produced no process output. The separate capture views can contain repeated text.
 
 Retry counts and final errors are preserved when provided. Intermediate attempt details may be unavailable. A failing coverage threshold, configuration, import, teardown, or runner process must remain visible even when reported assertions passed.
 
 ## Compatibility
 
-| Component            | Integration target      | Verified locally    |
-| -------------------- | ----------------------- | ------------------- |
-| Paseo app and daemon | `>=0.11.2 <0.12.0`      | 0.11.2 on macOS     |
-| Helper Node.js       | `^22.18.0` or `^24.0.0` | 24.16.0             |
-| Vitest               | 4.x and 5.x             | 4.1.11 and 5.0.4    |
-| Jest                 | 30.x                    | 30.5.2              |
-| Node.js test runner  | 22.18+ and 24.x         | 22.18.0 and 24.16.0 |
+| Component            | Integration target      | Verified locally           |
+| -------------------- | ----------------------- | -------------------------- |
+| Paseo app and daemon | `>=0.11.2 <0.13.0`      | 0.11.2 and 0.12.0 on macOS |
+| Helper Node.js       | `^22.18.0` or `^24.0.0` | 24.16.0                    |
+| Vitest               | 4.x and 5.x             | 4.1.11 and 5.0.4           |
+| Jest                 | 30.x                    | 30.5.2                     |
+| Node.js test runner  | 22.18+ and 24.x         | 22.18.0 and 24.16.0        |
 
 Vitest 4.1.11 and 5.0.4 contain a task-update timer edge case that can leave completed tests queued until another event or file completion. For the recognized affected implementation, the helper adds a worker preload that repairs only that timer in memory. Project files and installed dependencies are not edited; existing worker preloads are preserved. Unknown or already-fixed implementations are left unchanged. Vitest's VM module cache is bridged into the same scoped repair. Regression checks cover exact timer boundaries in fork, thread, and VM pools.
 
+The plugin typechecks against the Paseo 0.12.0 SDK and loads in the 0.12.0 daemon. The screenshot set verifies the live desktop panel, recent runs, source and diagnostic dialogs, logs, agent setup, settings, and Ghostty/Light themes on 0.12.0.
+
 The helper rejects other runner majors. Other releases within these majors are integration targets, not separately verified compatibility claims. Vitest 4 is installed in an isolated development fixture to avoid mixing incompatible optional peers with Vitest 5.
 
-Real-runner checks cover partial results, assertion errors, test logs, retries, skip/todo, native-versus-monitored reporter/configuration behavior, watch reruns, startup errors, concurrent commands, and interruption. The unit and real-runner integration checks passed with Node 22.18.0 and 24.16.0. The live Paseo dark-theme panel was checked at approximately 320 px, including stack/diff reports, test logs, source previews, and filtering. Light-theme and native mobile visual checks remain pending.
+Real-runner checks cover partial results, assertion errors, test logs, retries, skip/todo, native-versus-monitored reporter/configuration behavior, watch reruns, startup errors, concurrent commands, and interruption. The unit and real-runner integration checks passed with Node 22.18.0 and 24.16.0. The live Paseo dark-theme panel was checked at approximately 320 px, including stack/diff reports, test logs, source previews, and filtering. Ghostty and Light theme desktop captures are included above. Native mobile visual checks remain pending.
 
 Node integration checks also cover ESM/CommonJS/TypeScript and assertion-only files without project dependencies, native reporter destinations and preloads, nested and duplicate titles, strict assertion values, source selection, watch cycles, interruption, timeouts, cancellation, and empty selections.
 
@@ -77,6 +117,15 @@ The compatibility suite also checks duplicate and parameterized titles, per-test
 Browser-mode tests, multi-project configurations, configuration-file changes during watching, different operating systems, and native mobile clients need additional verification. The client follows Paseo's cross-platform component rules, but that alone is not a mobile compatibility test.
 
 ## Local data and limits
+
+Open **Settings** in the panel to inspect the current diagnostics and history policy. These limits are informational and fixed in this build.
+
+<details>
+<summary>Diagnostics and history settings</summary>
+
+<img src="assets/settings.png" width="720" alt="Unit Test Pulse settings listing capture limits, source limits, history retention and the local state directory">
+
+</details>
 
 Results and captured output stay under `~/.local/state/unit-test-pulse` on the daemon host. Use `UNIT_TEST_PULSE_STATE_DIR` or helper `--state-dir PATH` to override it; helper and daemon must share the same location. Helper runtime files live under `~/.local/share/unit-test-pulse`.
 
@@ -121,5 +170,7 @@ A nonzero exit is expected from that demonstration.
 The runtime helper uses Node's standard library and, for Vitest/Jest, the monitored project's installed runner. Paseo provides the panel's runtime libraries. The plugin uses TypeScript as a runtime dependency to parse test declarations for source previews without executing the source. Test runners and SDK tooling are development dependencies.
 
 Advanced historical comparisons, failure grouping, coverage summaries, report imports, configurable retention, and adapters for other runners are not implemented yet.
+
+Known reporting issue before 1.0: a clean Jest run can be labelled **Failed** in the summary even when every captured test passes and the process exits successfully. Its test counts and exit code remain accurate. The reporter currently reads Jest’s aggregate success flag before Jest finalizes it; this requires a separate fix that also preserves coverage and custom-reporter failures.
 
 Based on the design and selected utility components of [Cypress Pulse](https://github.com/mbranicky/cypress-pulse), with its MIT attribution preserved. [MIT license](LICENSE).

@@ -1,7 +1,7 @@
 {
   "name": "paseo-unit-test-pulse",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "files": [
     "paseo-plugin.json",
     "OVERVIEW.md",
@@ -15,7 +15,8 @@
     "skills/",
     "README.md",
     "LICENSE",
-    "!**/*.test.mjs"
+    "!**/*.test.mjs",
+    "assets/"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -25,7 +26,7 @@
     "setup:compat": "npm ci --prefix tests/compat/vitest4 --ignore-scripts"
   },
   "devDependencies": {
-    "@getpaseo/plugin": "0.11.2",
+    "@getpaseo/plugin": "0.12.0",
     "@tanstack/react-query": "^5.90.11",
     "@types/react": "~19.2.0",
     "react": "19.1.0",
