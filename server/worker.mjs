@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { vitestReporter } from "./vitest-reporter.mjs";
 import { launchNode } from "./node-runner.mjs";
 import { launchMocha } from "./mocha-runner.mjs";
+import { launchJasmine } from "./jasmine-runner.mjs";
 import { launchBun } from "./bun-runner.mjs";
 import { plainError } from "./model.mjs";
 const payload = JSON.parse(process.env.UNIT_TEST_PULSE_PAYLOAD);
@@ -81,6 +82,12 @@ try {
       }
     }
     if (!payload.watch) await ctx.close();
+  } else if (payload.runner === "jasmine") {
+    const jasmine = launchJasmine(payload, send);
+    close = jasmine.close;
+    const result = await jasmine.done;
+    if (result.signal) send({ type: "interrupted" });
+    process.exitCode = result.code ?? 130;
   } else if (payload.runner === "bun") {
     const bun = launchBun(payload, send);
     close = bun.close;

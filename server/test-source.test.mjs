@@ -248,3 +248,29 @@ test("Bun aliases and namespace imports retain per-test source previews", () => 
     /^b.test\('case'/,
   );
 });
+
+test("Jasmine globals, CommonJS aliases and default module namespace retain declarations", () => {
+  for (const [source, titlePath, pattern] of [
+    [
+      "describe('group',()=>{fit('focused',()=>{});xit('skipped',()=>{})});",
+      ["group", "focused"],
+      /^fit\(/,
+    ],
+    [
+      "const {describe:group,it:check}=require('jasmine-core');group('group',()=>check('selected',()=>{}));",
+      ["group", "selected"],
+      /^check\(/,
+    ],
+    [
+      "import core from 'jasmine-core';core.describe('group',()=>core.it('selected',()=>{}));",
+      ["group", "selected"],
+      /^core\.it\(/,
+    ],
+  ]) {
+    const result = extractTestSource("example.test.ts", source, {
+      title: titlePath.at(-1),
+      titlePath,
+    });
+    assert.match(result.text, pattern);
+  }
+});

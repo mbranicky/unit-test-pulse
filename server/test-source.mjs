@@ -37,9 +37,14 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
   for (const statement of source.statements) {
     if (
       !ts.isImportDeclaration(statement) ||
-      !["vitest", "@jest/globals", "node:test", "mocha", "bun:test"].includes(
-        statement.moduleSpecifier.text,
-      )
+      ![
+        "vitest",
+        "@jest/globals",
+        "node:test",
+        "mocha",
+        "bun:test",
+        "jasmine-core",
+      ].includes(statement.moduleSpecifier.text)
     )
       continue;
     if (
@@ -50,7 +55,7 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
       namespaces.add(statement.importClause.name.text);
     }
     if (
-      statement.moduleSpecifier.text === "mocha" &&
+      ["mocha", "jasmine-core"].includes(statement.moduleSpecifier.text) &&
       statement.importClause?.name
     )
       namespaces.add(statement.importClause.name.text);
@@ -74,7 +79,9 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
         !ts.isCallExpression(call) ||
         !ts.isIdentifier(call.expression) ||
         call.expression.text !== "require" ||
-        !["node:test", "mocha", "bun:test"].includes(call.arguments[0]?.text)
+        !["node:test", "mocha", "bun:test", "jasmine-core"].includes(
+          call.arguments[0]?.text,
+        )
       )
         continue;
       if (ts.isIdentifier(declaration.name)) {

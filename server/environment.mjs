@@ -1,5 +1,5 @@
 import { homedir } from "node:os";
-import { join, relative, isAbsolute } from "node:path";
+import { join, relative, isAbsolute, dirname } from "node:path";
 import { createRequire } from "node:module";
 import { readFileSync, realpathSync, accessSync, constants } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -18,16 +18,21 @@ export function inside(root, file) {
 }
 export function discover(root) {
   const require = createRequire(join(realpathSync(root), "package.json"));
-  const packages = ["vitest", "jest", "mocha"].flatMap((runner) => {
+  const packages = ["vitest", "jest", "mocha", "jasmine"].flatMap((runner) => {
     try {
-      const file = require.resolve(`${runner}/package.json`);
+      const file =
+        runner === "jasmine"
+          ? join(dirname(require.resolve("jasmine")), "../package.json")
+          : require.resolve(`${runner}/package.json`);
       const { version } = JSON.parse(readFileSync(file, "utf8"));
       const supported =
         runner === "vitest"
           ? /^[45]\./.test(version)
           : runner === "mocha"
             ? /^(11|12)\./.test(version)
-            : /^30\./.test(version);
+            : runner === "jasmine"
+              ? /^[67]\./.test(version)
+              : /^30\./.test(version);
       return [{ runner, version, packageFile: file, supported }];
     } catch {
       return [];

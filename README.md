@@ -2,7 +2,7 @@
 
 Follow JavaScript and TypeScript unit tests in Paseo while an agent works. Inspect live results grouped by test file, assertion failures, stack traces, current source, and captured output from the same panel.
 
-**Status:** early build, version 0.6.0, with live Vitest, Jest, Mocha, Bun, and Node.js test-runner monitoring. Tested versions and current limitations are listed below.
+**Status:** early build, version 0.7.0, with live Vitest, Jest, Mocha, Bun, Jasmine, and Node.js test-runner monitoring. Tested versions and current limitations are listed below.
 
 <p>
   <img src="assets/running.png" width="360" alt="Unit Test Pulse showing completed outcomes and a test still running in the storefront example">
@@ -40,10 +40,11 @@ node ~/.local/share/unit-test-pulse/cli.mjs run --project /absolute/project --ru
 node ~/.local/share/unit-test-pulse/cli.mjs run --project /absolute/project --runner jest -- --runInBand
 node ~/.local/share/unit-test-pulse/cli.mjs run --project /absolute/project --runner mocha -- --grep 'example'
 node ~/.local/share/unit-test-pulse/cli.mjs run --project /absolute/project --runner bun -- --test-name-pattern 'example'
+node ~/.local/share/unit-test-pulse/cli.mjs run --project /absolute/project --runner jasmine -- --filter=example
 node ~/.local/share/unit-test-pulse/cli.mjs run --project /absolute/project --runner node -- --test-name-pattern 'example' tests/example.test.mjs
 ```
 
-Arguments after `--` belong to the runner, including `--config` for alternate configurations. For ongoing monitoring, add helper `--watch` before `--`. When the tested package is nested in a Paseo workspace, add `--workspace /absolute/workspace` before `--`.
+Arguments after `--` belong to the runner, including `--config` for alternate configurations (`--config=path` for Jasmine). For ongoing monitoring, add helper `--watch` before `--`. When the tested package is nested in a Paseo workspace, add `--workspace /absolute/workspace` before `--`.
 
 The helper launches the existing installed runner directly, or the helper's Node.js executable for `--runner node`. Preserve environment variables, loaders, application startup, and prerequisites from the project's usual package scripts. It does not execute those prerequisites or install dependencies in monitored projects. A running command must already be instrumented to publish results; arbitrary uninstrumented processes cannot be attached.
 
@@ -53,9 +54,9 @@ Use `--runner node` for tests run with `node --test`, including `node:test` / `n
 
 Put native Node options before file paths, just as with `node --test`. The helper adds `--test` automatically; `--import`, `--require`, `--test-name-pattern`, file selection, concurrency, coverage options, and existing reporters/destinations keep their native meaning. Reporter settings in `NODE_OPTIONS` are also preserved. Use helper `--watch` before `--` for an ongoing watcher. A Node watch cycle records only the files that Node re-executes, so an unchanged file is absent from later cycles.
 
-`doctor` always lists the available built-in runner. If no Vitest, Jest, or Mocha package is installed, an omitted `--runner` selects Node.js. A single installed Vitest, Jest, or Mocha runner remains the default; use an explicit selection when several are installed. Bun requires an explicit `--runner bun` and does not change automatic selection for existing projects.
+`doctor` always lists the available built-in runner. If no Vitest, Jest, Mocha, or Jasmine package is installed, an omitted `--runner` selects Node.js. A single installed Vitest, Jest, Mocha, or Jasmine runner remains the default; use an explicit selection when several are installed. Bun requires an explicit `--runner bun` and does not change automatic selection for existing projects.
 
-Node assertion reports keep the original assertion stack and formatted expected/actual values. Output and diagnostics supplied by Node carry file identity, not individual test ownership. Test results follow Node's declaration-ordered reporting, so an earlier slow concurrent test can delay later results. An unmatched name filter is shown as no executed tests, even when Node also reports a successful file wrapper. Separate adapters are still required for AVA, Jasmine, Tape, and other independent runners.
+Node assertion reports keep the original assertion stack and formatted expected/actual values. Output and diagnostics supplied by Node carry file identity, not individual test ownership. Test results follow Node's declaration-ordered reporting, so an earlier slow concurrent test can delay later results. An unmatched name filter is shown as no executed tests, even when Node also reports a successful file wrapper. Separate adapters are still required for AVA, Tape, and other independent runners.
 
 ## Mocha tests
 
@@ -77,13 +78,23 @@ Add helper `--watch` before `--` (or native `--watch`) for an ongoing watcher. C
 
 **Diagnostics limitation:** Bun does not include a test ID in console or lifecycle error events. Failure messages, assertion diffs, and any supplied stack frames remain at run scope in **Run output**. Per-test details show the result and source declaration and direct you to that output; errors and logs are never assigned to a test by timing. Some assertion errors provide no stack frames. Hook/runtime errors and unsuccessful coverage checks stay visible even when the captured assertions pass. Intermediate retry diagnostics can remain in Run output after a flaky pass.
 
+## Jasmine tests
+
+Use `--runner jasmine` for Jasmine 6/7 projects. The helper launches the project's native Jasmine CLI with an external observer. Configuration, helpers, existing reporters (including async completion), loaders, randomization, seed, file/name filters, global setup/teardown, and native exit behavior are preserved. Monitoring changes no project files or installed dependencies. Use native argument syntax such as `--config=spec/support/jasmine.mjs`, `--filter=example`, `--seed=54321`, and `--parallel=2`. Parallel mode follows Jasmine's normal restrictions, including enabled randomization and no fixed seed.
+
+The panel captures live spec results, assertion messages and stacks, suite/global failures, durations, pending/excluded/not-applicable results, and the random seed when supplied. Jasmine's normal reporter results contain formatted assertion messages rather than separate expected/actual objects. Pending, excluded, and Jasmine 7's not-applicable tests appear as **Skipped**, with their native status retained. Native duplicate-name checks remain enabled; repeated names in different suites or files retain separate identities. Source previews support Jasmine globals and `jasmine-core` aliases; generated or ambiguous declarations may require opening the full file. Declaration filenames depend on Jasmine's own stack inspection, so projects wrapping `it()` / `describe()` should retain their existing `extraItStackFrames` / `extraDescribeStackFrames` settings.
+
+Process stdout/stderr remains in **Run output**. Only `jasmine.debugLog()` records supplied with a spec identity and pending/not-applicable reasons are attached to a test; Jasmine normally emits debug logs for failing specs. The helper never guesses console ownership from execution timing. A private temporary result journal preserves final events across Jasmine's explicit process exit and is removed on normal helper shutdown.
+
+Jasmine has no native watch mode, so helper/native `--watch` is rejected. Focused suites retain Jasmine's incomplete status notice and nonzero exit. Empty selections, skip-only runs, timeouts, reporter errors, loader failures, and unsuccessful process exits are never presented as successful assertion verification. Jasmine has no native retries to report.
+
 ## Dashboard and diagnostics
 
 - Recent runs keeps independent executions and watch cycles separate. A watch session displays **Watching — idle** after each cycle. Use **Follow latest run** to leave a manually selected historical result.
 - The summary distinguishes clean passes, passes after retry, failures, skipped tests, todo tests, and cancellation. Test counts remain **known** until collection finishes. No-test and skip/todo-only cycles display **No executed tests**.
 - File cards preserve full counts while filters and search narrow the displayed tests. Details are paged in groups of 200; select a file to browse its tests. The panel lists 30 recent runs; the helper can list all retained runs.
 - Expand a test for its failure message, **Stack trace & details**, and **Logs**. Reports include captured errors, available diffs, runner/project identity, retry information, and an output excerpt. **Run report** also lists the slowest captured test durations.
-- **Test details** shows the selected `it()` / `test()` declaration above its report, with original line numbers, **Copy source**, and **Open full file**. Nested suites, standard modifiers, aliases imported from Vitest/Jest/Mocha/Bun/Node, CommonJS Mocha/Bun/Node aliases, context subtests, and parameterized tests with runner locations are supported. Older runs use an unambiguous title-path match. Generated/custom declarations that cannot be matched show an explanation and full-file access.
+- **Test details** shows the selected `it()` / `test()` declaration above its report, with original line numbers, **Copy source**, and **Open full file**. Nested suites, standard modifiers, aliases imported from Vitest/Jest/Mocha/Bun/Jasmine/Node, CommonJS Mocha/Bun/Jasmine/Node aliases, context subtests, and parameterized tests with runner locations are supported. Older runs use an unambiguous title-path match. Generated/custom declarations that cannot be matched show an explanation and full-file access.
 - Click a filename for a read-only preview of its current contents with line numbers. The file may have changed since execution. Source reads are restricted to files reported by the run, within the selected workspace, up to 1 MiB.
 - **Run output** contains stdout/stderr plus separately captured console records. Log views support text search, stream filters, following the latest 100 records, pausing to browse pages, and copying a page.
 - The workspace header indicates active runs and recent outcomes even when the panel is closed.
@@ -124,6 +135,7 @@ Retry counts and final errors are preserved when provided. Intermediate attempt 
 | Jest                 | 30.x                     | 30.5.2                     |
 | Mocha                | 11.x and 12.x            | 11.8.0 and 12.0.3          |
 | Bun                  | 1.4.x, starting at 1.4.3 | 1.4.3                      |
+| Jasmine              | 6.x and 7.x              | 6.3.0 and 7.0.0            |
 | Node.js test runner  | 22.18+ and 24.x          | 22.18.0 and 24.16.0        |
 
 Vitest 4.1.11 and 5.0.4 contain a task-update timer edge case that can leave completed tests queued until another event or file completion. For the recognized affected implementation, the helper adds a worker preload that repairs only that timer in memory. Project files and installed dependencies are not edited; existing worker preloads are preserved. Unknown or already-fixed implementations are left unchanged. Vitest's VM module cache is bridged into the same scoped repair. Regression checks cover exact timer boundaries in fork, thread, and VM pools.
@@ -139,6 +151,8 @@ Node integration checks also cover ESM/CommonJS/TypeScript and assertion-only fi
 Mocha integration checks cover both majors: gated live results, strict assertion details, retries, skipped/pending tests, duplicate titles, source selection, ESM/CommonJS/TypeScript, TDD aliases, unchanged native configuration and reporters, Node-flag subprocesses, forced exit, hook failures, parallel results, watch reruns, concurrent commands, interruption, dry runs, bail, empty selections, and startup errors. Additional regressions cover exhausted retries, zero native failure exit codes, reporter/global-teardown failures, large Unicode records, and flushing queued IPC results before disconnect.
 
 Bun integration checks cover live results, duplicate/parameterized/dynamic titles, native configuration, preloads and environment files, JUnit output, CommonJS/TypeScript/TSX, aliases, retries, skip/todo, timeouts, concurrent tests, watch cycles and teardown recovery, interruption, repeat runs, empty selections, startup and coverage errors, runtime discovery, and explicit rejection of unobservable parallel workers. Watch checks include console output resembling a native summary. Repeated runs with large Unicode final events guard against Bun exiting before its inspector flushes; bail and explicit process-exit checks preserve native exit codes.
+
+Jasmine integration checks cover both majors: gated live progress, assertion stacks, debug-log ownership, skipped and focused specs, duplicate titles, nested parallel results and worker identity reuse, source previews, async/callback timeouts, native configuration/helpers/reporters, environment-selected configuration, Node preloads, random seeds, filters, startup/global/suite/reporter failures, concurrent commands, interruption, empty selections, explicit exits, and large Unicode final events. TypeScript and CommonJS `jasmine-core` aliases and Jasmine 7's not-applicable results are also checked.
 
 The compatibility suite also checks duplicate and parameterized titles, per-test source selection, a nested Jest configuration with a preset reporter, custom environment and TypeScript transform, and a Jest coverage-threshold failure. Source extraction checks cover nested suites, imported aliases, modifiers, JSX, original line numbers, ambiguous declarations, and workspace boundaries.
 
