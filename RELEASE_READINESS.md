@@ -1,5 +1,7 @@
 # 1.0.0 release verification
 
+Historical verification record for the 1.0.0 artifact. The preparation and remaining-step wording below records that candidate at the time of verification; it does not describe the status or checks of later releases.
+
 Local verification completed on 2026-10-20, before delivery, against the candidate based on `main` at `2a2ad86`. The maintainer subsequently authorized commit and push to `main`. Tagging and publication remain separate delivery steps. This verification record is repository documentation and is excluded from the npm artifact.
 
 ## Candidate

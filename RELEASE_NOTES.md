@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.0.1
+
+- Clarify the local helper copy and launcher locations in the plugin listing overview.
+- Document all three agent skill-link folders and the protection of existing files owned by other installations, following registry review feedback.
+
+Runner integrations and runtime behavior are unchanged.
+
 ## 1.0.0
 
 First stable release of Unit Test Pulse for Paseo.

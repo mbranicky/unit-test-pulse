@@ -59,4 +59,4 @@ node server/cli.mjs run --project examples/mocha --workspace "$PWD" --runner moc
 
 Stop the watcher when finished. Vitest, Jest, Mocha, Bun, and Node support the helper's watch mode; Jasmine uses one-shot runs. To select a different existing Bun runtime, set `UNIT_TEST_PULSE_BUN_BIN=/absolute/path/to/bun` for the monitored command.
 
-The parent [README](../README.md) describes adapter compatibility, capture limits, and reporting limitations. The examples use the 1.0.0 adapter behavior; each native retry remains one captured test.
+The parent [README](../README.md) describes adapter compatibility, capture limits, and reporting limitations. The examples use the 1.0.1 adapter behavior; each native retry remains one captured test.

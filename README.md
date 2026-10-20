@@ -2,7 +2,7 @@
 
 Follow JavaScript and TypeScript unit tests in Paseo while an agent works. Inspect live results grouped by test file, assertion failures, stack traces, current source, and captured output from the same panel.
 
-Version **1.0.0** monitors Vitest, Jest, Mocha, Bun, Jasmine, and Node.js built-in tests. See the [release notes](RELEASE_NOTES.md#100) for the first stable release and the compatibility table below for tested versions.
+Version **1.0.1** monitors Vitest, Jest, Mocha, Bun, Jasmine, and Node.js built-in tests. See the [release notes](RELEASE_NOTES.md#101) for changes and the compatibility table below for tested versions.
 
 <p>
   <img src="assets/running.png" width="360" alt="Unit Test Pulse showing completed outcomes and a test still running in the storefront example">
@@ -22,16 +22,16 @@ These are real Paseo 0.12.0 desktop captures on macOS, using an isolated storefr
 
 Use Paseo app and daemon `>=0.11.2 <0.13.0`, with Node.js `^22.18.0` or `^24.0.0` on the daemon host. The tested project supplies its runner; Bun projects need an existing supported Bun executable.
 
-Install version 1.0.0 from npm:
+Install version 1.0.1 from npm:
 
 ```sh
-paseo plugin install npm:paseo-unit-test-pulse@1.0.0
+paseo plugin install npm:paseo-unit-test-pulse@1.0.1
 ```
 
 Or select the Git release:
 
 ```sh
-paseo plugin install git:mbranicky/unit-test-pulse --ref v1.0.0
+paseo plugin install git:mbranicky/unit-test-pulse --ref v1.0.1
 ```
 
 For development, install a local checkout after preparing its dependencies:
@@ -178,7 +178,7 @@ Browser-mode tests, multi-project configurations, configuration-file changes dur
 
 ## Local data and limits
 
-Open **Settings** in the panel to inspect the current diagnostics and history policy. These limits are informational and fixed in version 1.0.0.
+Open **Settings** in the panel to inspect the current diagnostics and history policy. These limits are informational and fixed in version 1.0.1.
 
 <details>
 <summary>Diagnostics and history settings</summary>
@@ -193,7 +193,7 @@ Process output and structured console logs each have a 20 MiB capture budget per
 
 Runs whose project or worktree folder has been removed are omitted from workspace history without generating warnings. Their saved results are retained under the normal history policy. Missing records during cleanup are also skipped; damaged records and unexpected read errors still produce notices.
 
-Completed history is cleaned up on cycle rollover and helper exit, keeping the latest 100 cycles per project within a 500 MiB completed-history budget where possible. Active and idle-watch records are preserved. Version 1.0.0 does not impose a hard global budget on all simultaneous active runs. Capture and retention settings are informational and fixed for now.
+Completed history is cleaned up on cycle rollover and helper exit, keeping the latest 100 cycles per project within a 500 MiB completed-history budget where possible. Active and idle-watch records are preserved. Version 1.0.1 does not impose a hard global budget on all simultaneous active runs. Capture and retention settings are informational and fixed for now.
 
 Captured logs can contain application secrets. The plugin does not record the full environment and does not claim automatic secret removal. The helper and panel do not upload results. Copy/export actions use captured text, and an agent following the optional skill can read that text and send it to its configured provider. No additional cloud service or account is required by the plugin.
 
@@ -223,7 +223,7 @@ paseo plugin reload unit-test-pulse
 
 Live-progress integration checks hold a fixture test open until the observer has read persisted partial results. Delayed observation and staggered command startup exercise the former timing race without requiring a short overlap window. Polling stops when a runner exits unexpectedly and includes its output and the last snapshots in failures. Child processes are stopped before temporary fixture data is removed.
 
-The [adapter examples](https://github.com/mbranicky/unit-test-pulse/tree/v1.0.0/examples) cover Vitest, Jest, Mocha, Bun, Jasmine, and Node.js. Each project includes a cart suite with an intentional assertion failure and a separate passing pricing suite, plus logs, skips, async progress, and retries/todo where supported. Run either the native test script or its monitored equivalent from the repository root:
+The [adapter examples](https://github.com/mbranicky/unit-test-pulse/tree/v1.0.1/examples) cover Vitest, Jest, Mocha, Bun, Jasmine, and Node.js. Each project includes a cart suite with an intentional assertion failure and a separate passing pricing suite, plus logs, skips, async progress, and retries/todo where supported. Run either the native test script or its monitored equivalent from the repository root:
 
 ```sh
 npm --prefix examples/jest test
