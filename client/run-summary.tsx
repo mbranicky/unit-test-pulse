@@ -75,6 +75,7 @@ export function RunSummary({
               vitest: "Vitest",
               jest: "Jest",
               mocha: "Mocha",
+              bun: "Bun",
               node: "Node.js",
             } as Record<string, string>
           )[run.runner] || run.runner}{" "}

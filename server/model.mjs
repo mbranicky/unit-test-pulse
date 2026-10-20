@@ -63,9 +63,11 @@ export function reduce(state, event) {
   if (event.type === "notice" && !state.notices.includes(event.message))
     state.notices.push(event.message);
   if (event.type === "end") {
-    state.totalComplete = [...state.files.values()].every(
-      (f) => !["queued", "running"].includes(f.status),
-    );
+    state.totalComplete =
+      event.complete !== false &&
+      [...state.files.values()].every(
+        (f) => !["queued", "running"].includes(f.status),
+      );
     state.watching = Boolean(event.watching);
     for (const test of state.tests.values())
       if (!terminal.has(test.status)) test.status = "cancelled";

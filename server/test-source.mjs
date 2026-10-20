@@ -37,7 +37,7 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
   for (const statement of source.statements) {
     if (
       !ts.isImportDeclaration(statement) ||
-      !["vitest", "@jest/globals", "node:test", "mocha"].includes(
+      !["vitest", "@jest/globals", "node:test", "mocha", "bun:test"].includes(
         statement.moduleSpecifier.text,
       )
     )
@@ -74,7 +74,7 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
         !ts.isCallExpression(call) ||
         !ts.isIdentifier(call.expression) ||
         call.expression.text !== "require" ||
-        !["node:test", "mocha"].includes(call.arguments[0]?.text)
+        !["node:test", "mocha", "bun:test"].includes(call.arguments[0]?.text)
       )
         continue;
       if (ts.isIdentifier(declaration.name)) {

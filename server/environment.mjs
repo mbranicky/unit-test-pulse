@@ -1,7 +1,9 @@
 import { homedir } from "node:os";
 import { join, relative, isAbsolute } from "node:path";
 import { createRequire } from "node:module";
-import { readFileSync, realpathSync } from "node:fs";
+import { readFileSync, realpathSync, accessSync, constants } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { delimiter, resolve } from "node:path";
 export const stateRoot = () =>
   process.env.UNIT_TEST_PULSE_STATE_DIR ||
   join(homedir(), ".local", "state", "unit-test-pulse");
@@ -33,6 +35,7 @@ export function discover(root) {
   });
   return [
     ...packages,
+    ...discoverBun(root),
     {
       runner: "node",
       version: process.versions.node,
@@ -43,4 +46,47 @@ export function discover(root) {
           Number(process.versions.node.split(".")[1]) >= 18),
     },
   ];
+}
+
+export function discoverBun(root) {
+  const candidates = process.env.UNIT_TEST_PULSE_BUN_BIN
+    ? [resolve(process.env.UNIT_TEST_PULSE_BUN_BIN)]
+    : [
+        join(
+          root,
+          "node_modules",
+          ".bin",
+          process.platform === "win32" ? "bun.exe" : "bun",
+        ),
+        ...(process.env.PATH || "")
+          .split(delimiter)
+          .filter(Boolean)
+          .map((directory) =>
+            join(directory, process.platform === "win32" ? "bun.exe" : "bun"),
+          ),
+      ];
+  for (const executable of candidates) {
+    try {
+      accessSync(executable, constants.X_OK);
+    } catch {
+      continue;
+    }
+    const result = spawnSync(executable, ["--version"], {
+      encoding: "utf8",
+      timeout: 5000,
+      cwd: root,
+    });
+    const version = result.stdout?.trim();
+    if (result.status === 0 && /^\d+\.\d+\.\d+(?:[-+].*)?$/.test(version))
+      return [
+        {
+          runner: "bun",
+          version,
+          executable,
+          supported:
+            /^1\.4\./.test(version) && Number(version.split(".")[2]) >= 3,
+        },
+      ];
+  }
+  return [];
 }

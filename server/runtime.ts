@@ -1,9 +1,10 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { readFile, mkdir, writeFile, rename } from "node:fs/promises";
+import { readFile, mkdir, writeFile, rename, cp } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
 const marker = "// Managed by the unit-test-pulse Paseo plugin.\n";
@@ -19,6 +20,9 @@ const files = [
   "jest-reporter.cjs",
   "node-runner.mjs",
   "node-reporter.mjs",
+  "bun-runner.mjs",
+  "bun-reporter.mjs",
+  "bun-barrier.mjs",
   "mocha-runner.mjs",
   "mocha-bridge.mjs",
   "mocha-reporter.mjs",
@@ -54,7 +58,12 @@ export async function installHelper(): Promise<string> {
   const contents = await Promise.all(
     files.map((file) => readFile(join(source!, "server", file), "utf8")),
   );
+  const wsPackage = createRequire(join(source, "package.json")).resolve(
+    "ws/package.json",
+  );
+  const wsMetadata = await readFile(wsPackage, "utf8");
   const hash = createHash("sha256")
+    .update(wsMetadata)
     .update(contents.join("\0"))
     .digest("hex")
     .slice(0, 16);
@@ -63,6 +72,9 @@ export async function installHelper(): Promise<string> {
   await mkdir(version, { recursive: true, mode: 0o700 });
   for (const [index, file] of files.entries())
     await writeFile(join(version, file), contents[index], { mode: 0o600 });
+  await cp(dirname(wsPackage), join(version, "node_modules", "ws"), {
+    recursive: true,
+  });
   const helper = join(folder, "cli.mjs");
   const existing = await readFile(helper, "utf8").catch((error) => {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;

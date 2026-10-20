@@ -70,3 +70,11 @@ test("parallel files retain independent tests and large runs summarize without q
   assert.equal(run.total, 10000);
   assert.equal(run.files[9999].completed, 1);
 });
+
+test("an adapter can explicitly mark an otherwise finished collection incomplete", () => {
+  const state = createState(info);
+  reduce(state, { type: "test", test: sample });
+  reduce(state, { type: "end", complete: false });
+  assert.equal(snapshot(state).totalComplete, false);
+  assert.equal(snapshot(state).passed, 1);
+});

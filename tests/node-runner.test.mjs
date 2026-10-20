@@ -179,7 +179,9 @@ test(
       "require('node:assert/strict').equal(4,4);",
     );
     assert.deepEqual(
-      discover(f.root).map((r) => r.runner),
+      discover(f.root)
+        .filter((r) => r.runner !== "bun")
+        .map((r) => r.runner),
       ["node"],
     );
     const command = launch(
@@ -196,6 +198,11 @@ test(
     const result = await command.done;
     assert.equal(result.code, 0, result.output);
     const [run] = await runs(f);
+    assert.equal(
+      run.runner,
+      "node",
+      "An available Bun runtime does not change automatic selection",
+    );
     assert.equal(run.passed, 4);
     assert.equal(run.files.length, 4);
     assert.equal(run.totalComplete, true);

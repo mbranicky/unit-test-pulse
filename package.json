@@ -1,7 +1,7 @@
 {
   "name": "paseo-unit-test-pulse",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "files": [
     "paseo-plugin.json",
     "OVERVIEW.md",
@@ -23,13 +23,14 @@
     "test": "node --test server/*.test.mjs",
     "test:integration": "node --test --test-concurrency=1 tests/*.test.mjs",
     "check": "npm run typecheck && npm test",
-    "setup:compat": "npm ci --prefix tests/compat/vitest4 --ignore-scripts"
+    "setup:compat": "npm ci --prefix tests/compat/vitest4 --ignore-scripts && node node_modules/bun/install.js"
   },
   "devDependencies": {
     "@getpaseo/plugin": "0.12.0",
     "@tanstack/react-query": "^5.90.11",
     "@types/node": "24.0.0",
     "@types/react": "~19.2.0",
+    "bun": "1.4.3",
     "jest": "30.5.2",
     "mocha": "12.0.3",
     "mocha11": "npm:mocha@11.8.0",
@@ -48,6 +49,7 @@
     "unit-test-pulse": "server/cli.mjs"
   },
   "dependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "ws": "8.22.0"
   }
 }

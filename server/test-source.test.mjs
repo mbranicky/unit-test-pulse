@@ -227,3 +227,24 @@ test("Mocha BDD/TDD, context/specify, and module aliases select individual decla
     assert.ok(source.text.startsWith(expression + "("), source.text);
   }
 });
+
+test("Bun aliases and namespace imports retain per-test source previews", () => {
+  for (const text of [
+    "import {test as check,describe as group} from 'bun:test';group('suite',()=>check('case',()=>{}));",
+    "const {test:check,describe:group}=require('bun:test');group('suite',()=>check('case',()=>{}));",
+  ]) {
+    assert.match(
+      extractTestSource("example.test.ts", text, selected("case", ["suite"]))
+        .text,
+      /^check\('case'/,
+    );
+  }
+  assert.match(
+    extractTestSource(
+      "example.test.ts",
+      "import * as b from 'bun:test';b.test('case',()=>{});",
+      selected("case"),
+    ).text,
+    /^b.test\('case'/,
+  );
+});

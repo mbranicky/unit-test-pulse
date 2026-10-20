@@ -2,7 +2,7 @@
 
 Unit Test Pulse follows JavaScript and TypeScript unit tests beside your Paseo agents. The workspace panel shows live results grouped by file, failure messages, stack traces, assertion details, current source previews, and captured logs. A header indicator keeps execution visible when the panel is closed.
 
-Version 0.5.0 integrates with Vitest 4/5, Jest 30, Mocha 11/12, and Node.js 22.18+/24 built-in tests through a local helper. Vitest/Jest/Mocha use the tested project's installed runner; Node tests use the helper's Node executable without installing a framework. The panel's optional agent skill explains how to launch monitored tests while retaining the project's normal environment and prerequisites. Existing uninstrumented commands cannot be attached after launch.
+Version 0.6.0 integrates with Vitest 4/5, Jest 30, Mocha 11/12, Bun 1.4.3+, and Node.js 22.18+/24 built-in tests through a local helper. Vitest/Jest/Mocha use the tested project's installed runner; Node tests use the helper's Node executable without installing a framework. Bun uses an existing executable from the project or PATH, or an explicitly configured path. The panel's optional agent skill explains how to launch monitored tests while retaining the project's normal environment and prerequisites. Existing uninstrumented commands cannot be attached after launch.
 
 Each watch cycle is a separate result, with an idle state between cycles. Concurrent commands retain independent identities. Filters and search narrow the displayed tests while run counts remain complete for the captured execution. Failure reports and paged output can be copied for debugging.
 
@@ -10,8 +10,10 @@ Node tests retain original assertion stacks and expected/actual values, with sou
 
 Mocha runs through its native CLI with the existing reporter, configuration and loaders preserved. Failures, hook errors, retries, skipped/pending tests, and BDD/TDD source previews are captured. Parallel results arrive at file completion; Mocha process output remains at run scope. Dry runs are shown as no executed tests.
 
+Bun 1.4.x uses a private loopback inspector for live results, retries, source previews, concurrent tests, and watch cycles. Its errors and console messages stay in Run output because they lack test identities; some assertions provide no stack frames. Native parallel workers, hot reload, and other inspector sessions are not supported by this adapter. Existing Bun configuration, environment files, preloads, JUnit output, and exit behavior are preserved.
+
 Vitest console records can carry test identity. Jest console buffers are file-scoped when supplied, and Node.js output records are file-scoped, while process stdout/stderr stays associated with the run. Runner settings can suppress output. Capture limits and unavailable details are shown explicitly.
 
-This early build was checked with Paseo 0.11.2 and 0.12.0 on macOS. The README includes real 0.12.0 desktop captures of live results, diagnostics, source previews, logs, setup, recent runs, settings, and Ghostty/Light themes. Runner checks cover Node 22.18.0/24.16.0, Vitest 4.1.11/5.0.4, Jest 30.5.2, and Mocha 11.8.0/12.0.3. Other platforms, browser-mode tests, and complex multi-project configurations need further verification.
+This early build was checked with Paseo 0.11.2 and 0.12.0 on macOS. The README includes real 0.12.0 desktop captures of live results, diagnostics, source previews, logs, setup, recent runs, settings, and Ghostty/Light themes. Runner checks cover Node 22.18.0/24.16.0, Vitest 4.1.11/5.0.4, Jest 30.5.2, Mocha 11.8.0/12.0.3, and Bun 1.4.3. Other platforms, browser-mode tests, and complex multi-project configurations need further verification.
 
 Results and logs remain on the daemon host under `~/.local/state/unit-test-pulse` unless copied. Logs can contain application secrets. History and capture policies are currently fixed; advanced reporting and adapters for other independent runners are planned.
