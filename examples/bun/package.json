@@ -1,0 +1,9 @@
+{
+  "name": "unit-test-pulse-example-bun",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "test:pulse": "node ../../server/cli.mjs run --project . --workspace ../.. --runner bun --"
+  }
+}

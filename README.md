@@ -199,20 +199,23 @@ npm run test:integration
 paseo plugin reload unit-test-pulse
 ```
 
+[GitHub Actions](.github/workflows/check.yml) runs type checking, all unit tests, and the complete real-runner integration suite on Node 22.18.0 and 24.x for pushes, pull requests, and manual runs. After dependencies and compatibility runtimes are prepared, both test suites run even if an earlier check fails; each Node version completes independently.
+
 Live-progress integration checks hold a fixture test open until the observer has read persisted partial results. Delayed observation and staggered command startup exercise the former timing race without requiring a short overlap window. Polling stops when a runner exits unexpectedly and includes its output and the last snapshots in failures. Child processes are stopped before temporary fixture data is removed.
 
-The development fixture under `examples/vitest` deliberately contains one failing assertion and a pass on retry. It provides real panel data without changing another project:
+The [adapter examples](examples/README.md) cover Vitest, Jest, Mocha, Bun, Jasmine, and Node.js. Each project includes a cart suite with an intentional assertion failure and a separate passing pricing suite, plus logs, skips, async progress, and retries/todo where supported. Run either the native test script or its monitored equivalent from the repository root:
 
 ```sh
-node server/cli.mjs run --project examples/vitest --workspace "$PWD" --runner vitest
+npm --prefix examples/jest test
+npm --prefix examples/jest run test:pulse
 ```
 
-A nonzero exit is expected from that demonstration.
+Replace `jest` with the desired example folder. Full demos intentionally exit unsuccessfully; the examples guide lists expected outcomes, native differences, and how to select a passing file. All examples use the repository's development dependencies.
 
 The runtime helper uses Node's standard library, a bundled `ws` client for Bun's local inspector, and the monitored project's installed runner or selected Bun executable. The helper installer copies its WebSocket dependency into the managed runtime; consumers do not install it in their projects. Paseo provides the panel's runtime libraries. The plugin uses TypeScript as a runtime dependency to parse test declarations for source previews without executing the source. Test runners and SDK tooling are development dependencies.
 
 Advanced historical comparisons, failure grouping, coverage summaries, report imports, configurable retention, and adapters for other runners are not implemented yet.
 
-Known reporting issue before 1.0: a clean Jest run can be labelled **Failed** in the summary even when every captured test passes and the process exits successfully. Its test counts and exit code remain accurate. The reporter currently reads Jest’s aggregate success flag before Jest finalizes it; this requires a separate fix that also preserves coverage and custom-reporter failures.
+Known reporting issues before 1.0: a clean Jest run can be labelled **Failed** in the summary even when every captured test passes and the process exits successfully. Its test counts and exit code remain accurate. The reporter currently reads Jest’s aggregate success flag before Jest finalizes it; this requires a separate fix that also preserves coverage and custom-reporter failures. Jest retries can also create duplicate captured test entries because retry events currently receive new occurrence identities. The Jest example uses single attempts until that identity handling is corrected.
 
 Based on the design and selected utility components of [Cypress Pulse](https://github.com/mbranicky/cypress-pulse), with its MIT attribution preserved. [MIT license](LICENSE).

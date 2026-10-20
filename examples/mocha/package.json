@@ -1,0 +1,9 @@
+{
+  "name": "unit-test-pulse-example-mocha",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "mocha",
+    "test:pulse": "node ../../server/cli.mjs run --project . --workspace ../.. --runner mocha --"
+  }
+}

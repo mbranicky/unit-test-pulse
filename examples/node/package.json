@@ -1,0 +1,9 @@
+{
+  "name": "unit-test-pulse-example-node",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test cart.test.mjs pricing.test.mjs",
+    "test:pulse": "node ../../server/cli.mjs run --project . --workspace ../.. --runner node --"
+  }
+}

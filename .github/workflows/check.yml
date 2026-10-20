@@ -1,18 +1,50 @@
 name: Check
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
+      fail-fast: false
       matrix:
         node: ["22.18.0", "24"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm run setup:compat
-      - run: npm run check
-      - run: npm run test:integration
+          cache-dependency-path: |
+            package-lock.json
+            tests/compat/vitest4/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Prepare Vitest 4 and Bun compatibility runtimes
+        id: compat
+        run: npm run setup:compat
+
+      - name: Type check
+        run: npm run typecheck
+
+      # Run both suites even if an earlier check fails, once setup succeeds.
+      # Their failures still fail the job; cancellation stops further work.
+      - name: Run all unit tests
+        if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
+        run: npm test
+
+      - name: Run all real-runner integration tests
+        if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
+        run: npm run test:integration

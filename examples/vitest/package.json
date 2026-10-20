@@ -1,5 +1,9 @@
 {
-  "name": "unit-test-pulse-demo",
+  "name": "unit-test-pulse-example-vitest",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:pulse": "node ../../server/cli.mjs run --project . --workspace ../.. --runner vitest --"
+  }
 }
