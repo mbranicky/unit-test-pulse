@@ -1,3 +1,5 @@
+jest.retryTimes(1, { retryImmediately: true });
+
 describe("Shopping cart", () => {
   test("adds item quantities", () => {
     console.log("Adding 2 books and 1 notebook");
@@ -7,9 +9,10 @@ describe("Shopping cart", () => {
     console.error("Checkout diagnostic: expected a 10% discount");
     expect({ total: 59.97 }).toEqual({ total: 53.97 });
   });
-  test("looks up available inventory", () => {
-    console.log("Inventory service reports 12 available items");
-    expect({ available: 12 }).toEqual({ available: 12 });
+  let attempt = 0;
+  test("retries a temporary inventory lookup", () => {
+    console.log(`Inventory lookup attempt ${attempt + 1}`);
+    expect(++attempt).toBe(2);
   });
   test.skip("supports gift wrapping", () => {});
   test.todo("supports discount stacking");

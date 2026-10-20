@@ -24,7 +24,7 @@ export function DiagnosticSettings({ theme }: PluginSurfaceProps) {
       <Text
         style={{ color: colors.foregroundMuted, lineHeight: 21, fontSize: 12 }}
       >
-        Limits are fixed in this first build. Reaching a capture limit leaves
+        Capture and history limits are fixed. Reaching a capture limit leaves
         test results active and adds a notice. History cleanup runs when a
         helper exits and preserves active/watch records. Advanced reporting and
         configurable retention are planned.

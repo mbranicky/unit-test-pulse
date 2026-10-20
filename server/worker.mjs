@@ -129,6 +129,9 @@ try {
     // The original config is loaded through Jest's own loader. Its normalized root
     // stays anchored to that config even though this composition wrapper is external.
     const configModule = jestRequire.resolve("jest-config");
+    const pulseReporter = fileURLToPath(
+      new URL("./jest-reporter.cjs", import.meta.url),
+    );
     const originalConfig = argv.config ?? null;
     const reporters = argv.reporters ?? null;
     const normalizeArgs = { ...argv };
@@ -136,7 +139,7 @@ try {
     delete normalizeArgs.config;
     writeFileSync(
       join(temp, "jest.config.cjs"),
-      `module.exports = async () => {\nconst {readInitialOptions, normalize} = require(${JSON.stringify(configModule)});\nconst loaded = await readInitialOptions(${JSON.stringify(originalConfig)}, {packageRootOrConfig:${JSON.stringify(payload.projectRoot)}});\nconst normalized = await normalize({...loaded.config}, ${JSON.stringify(normalizeArgs)}, loaded.configPath);\nconst reporters = ${JSON.stringify(reporters)} || normalized.options.reporters || ['default'];\nreturn {...loaded.config, reporters:[...reporters, ${JSON.stringify(fileURLToPath(new URL("./jest-reporter.cjs", import.meta.url)))}]};\n};\n`,
+      `module.exports = async () => {\nconst {readInitialOptions, normalize} = require(${JSON.stringify(configModule)});\nconst loaded = await readInitialOptions(${JSON.stringify(originalConfig)}, {packageRootOrConfig:${JSON.stringify(payload.projectRoot)}});\nconst normalized = await normalize({...loaded.config}, ${JSON.stringify(normalizeArgs)}, loaded.configPath);\nconst reporters = ${JSON.stringify(reporters)} || normalized.options.reporters || ['default'];\nreturn {...loaded.config, reporters:[...reporters, ${JSON.stringify(pulseReporter)}]};\n};\n`,
       { mode: 0o600 },
     );
     delete argv.reporters;
@@ -157,6 +160,7 @@ try {
           ? 0
           : (globalConfig.testFailureExitCode ?? 1);
     } finally {
+      await require(pulseReporter).flush();
       if (!payload.watch) rmSync(temp, { recursive: true, force: true });
     }
   } else {

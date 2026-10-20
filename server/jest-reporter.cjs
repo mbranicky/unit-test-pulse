@@ -6,6 +6,7 @@ const error = (value) => ({
   message: String(value?.message || value || "").slice(0, 1024 * 1024),
   ...(value?.stack ? { stack: String(value.stack).slice(0, 1024 * 1024) } : {}),
 });
+const completions = new Set();
 module.exports = class PulseReporter {
   constructor(config) {
     this.watch = config.watch || config.watchAll;
@@ -21,10 +22,9 @@ module.exports = class PulseReporter {
   test(test, result, occurrence) {
     const file = this.file(test),
       titles = [...(result.ancestorTitles || []), result.title];
-    const k = JSON.stringify([file.id, titles]);
-    const n = occurrence ?? (this.identities.get(k) || 0);
+    const n = occurrence ?? 0;
     return {
-      id: key(file.id, titles, n),
+      id: key(file.id, titles, result.location || null, n),
       fileId: file.id,
       file: file.file,
       project: file.project,
@@ -48,17 +48,49 @@ module.exports = class PulseReporter {
   onTestFileStart(test) {
     send({ type: "file", file: { ...this.file(test), status: "running" } });
   }
+  bucket(test, result) {
+    return JSON.stringify([
+      this.file(test).id,
+      result.ancestorTitles || [],
+      result.title,
+      result.location || null,
+    ]);
+  }
   onTestCaseResult(test, result) {
-    const info = this.test(test, result);
-    send({ type: "test", test: info });
-    const k = JSON.stringify([info.fileId, info.titlePath]);
-    this.identities.set(k, (this.identities.get(k) || 0) + 1);
+    const k = this.bucket(test, result);
+    const records = this.identities.get(k) || [];
+    this.identities.set(k, records);
+    const invocation = result.invocations || 1;
+    let record;
+    if (invocation <= 1) {
+      record = { occurrence: records.length };
+      records.push(record);
+    } else {
+      const candidates = records.filter(
+        (item) =>
+          item.invocation === invocation - 1 && item.status === "failed",
+      );
+      if (candidates.length !== 1) {
+        // Duplicate generated names may also share a declaration location. The
+        // file's final declaration-ordered results resolve that ambiguity.
+        send({
+          type: "notice",
+          message:
+            "Jest supplied ambiguous retry identities. Those retry updates are deferred until the file's final report.",
+        });
+        return;
+      }
+      record = candidates[0];
+    }
+    record.invocation = invocation;
+    record.status = result.status;
+    send({ type: "test", test: this.test(test, result, record.occurrence) });
   }
   onTestFileResult(test, result) {
     const file = this.file(test),
       seen = new Map();
     for (const item of result.testResults) {
-      const k = JSON.stringify(item.ancestorTitles.concat(item.title)),
+      const k = this.bucket(test, item),
         n = seen.get(k) || 0;
       seen.set(k, n + 1);
       send({ type: "test", test: this.test(test, item, n) });
@@ -89,13 +121,28 @@ module.exports = class PulseReporter {
       });
   }
   onRunComplete(_, result) {
-    if (result.runExecError)
-      send({ type: "error", error: error(result.runExecError) });
-    send({
-      type: "end",
-      failed: !result.success,
-      interrupted: result.wasInterrupted,
-      watching: this.watch,
-    });
+    // Jest computes aggregate success (including coverage/reporter errors) only
+    // after awaiting every onRunComplete callback. Read that same result object
+    // on the next event-loop turn, without delaying Jest's reporter dispatcher.
+    const completed = new Promise((resolve) =>
+      setImmediate(() => {
+        try {
+          if (result.runExecError)
+            send({ type: "error", error: error(result.runExecError) });
+          send({
+            type: "end",
+            failed: !result.success,
+            interrupted: result.wasInterrupted,
+            watching: this.watch,
+          });
+        } finally {
+          resolve();
+        }
+      }),
+    );
+    completions.add(completed);
+    void completed.then(() => completions.delete(completed));
   }
 };
+// One-shot runCLI can return before the deferred reporter callback executes.
+module.exports.flush = () => Promise.all([...completions]);

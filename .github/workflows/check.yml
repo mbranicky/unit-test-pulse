@@ -26,7 +26,7 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
           cache-dependency-path: |
-            package-lock.json
+            npm-shrinkwrap.json
             tests/compat/vitest4/package-lock.json
 
       - name: Install dependencies
@@ -39,6 +39,10 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      - name: Type check minimum Paseo 0.11.2 SDK
+        if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
+        run: npm run typecheck:paseo-011
+
       # Run both suites even if an earlier check fails, once setup succeeds.
       # Their failures still fail the job; cancellation stops further work.
       - name: Run all unit tests
@@ -48,3 +52,7 @@ jobs:
       - name: Run all real-runner integration tests
         if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
         run: npm run test:integration
+
+      - name: Verify the production release package
+        if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
+        run: npm run test:package

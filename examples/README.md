@@ -43,7 +43,7 @@ For an all-passing run with another adapter, select that example's `pricing.test
 ## What each example shows
 
 - **Vitest:** TypeScript, an assertion diff, test-attributed logs, retry success, skipped/todo tests, and async progress. Its configuration retries failures once.
-- **Jest:** CommonJS, an assertion diff, file-scoped console output, skipped/todo tests, and async progress. This demo uses single attempts; the current adapter can duplicate results when Jest retries a test.
+- **Jest:** CommonJS, an assertion diff, file-scoped console output, an immediate retry success, skipped/todo tests, and async progress. The permanent failure also receives its configured retry.
 - **Mocha:** Strict assertion expected/actual values, per-test retries, skipped and pending declarations, nested suites, and async progress. Both skipped and pending declarations appear as **Skipped**. Process output is available in **Run output**.
 - **Bun:** TypeScript, native per-test retries, skipped/todo tests, and async progress. Failure diagnostics and console output are available in **Run output**, since Bun does not supply their owning test identities.
 - **Jasmine:** Failure messages and stacks, a test-scoped `jasmine.debugLog()` message, disabled/pending specs, nested suites, and async progress. Both disabled and pending specs appear as **Skipped**. Ordinary console output remains in **Run output**. The inventory lookup passes directly because Jasmine has no native retries.
@@ -59,4 +59,4 @@ node server/cli.mjs run --project examples/mocha --workspace "$PWD" --runner moc
 
 Stop the watcher when finished. Vitest, Jest, Mocha, Bun, and Node support the helper's watch mode; Jasmine uses one-shot runs. To select a different existing Bun runtime, set `UNIT_TEST_PULSE_BUN_BIN=/absolute/path/to/bun` for the monitored command.
 
-The parent [README](../README.md) describes adapter compatibility, capture limits, and known reporting limitations.
+The parent [README](../README.md) describes adapter compatibility, capture limits, and reporting limitations. The examples use the 1.0.0 adapter behavior; each native retry remains one captured test.

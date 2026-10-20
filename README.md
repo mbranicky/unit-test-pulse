@@ -2,7 +2,7 @@
 
 Follow JavaScript and TypeScript unit tests in Paseo while an agent works. Inspect live results grouped by test file, assertion failures, stack traces, current source, and captured output from the same panel.
 
-**Status:** early build, version 0.7.0, with live Vitest, Jest, Mocha, Bun, Jasmine, and Node.js test-runner monitoring. Tested versions and current limitations are listed below.
+Version **1.0.0** monitors Vitest, Jest, Mocha, Bun, Jasmine, and Node.js built-in tests. See the [release notes](RELEASE_NOTES.md#100) for the first stable release and the compatibility table below for tested versions.
 
 <p>
   <img src="assets/running.png" width="360" alt="Unit Test Pulse showing completed outcomes and a test still running in the storefront example">
@@ -20,11 +20,29 @@ These are real Paseo 0.12.0 desktop captures on macOS, using an isolated storefr
 
 ## Get started
 
-Install the local checkout:
+Use Paseo app and daemon `>=0.11.2 <0.13.0`, with Node.js `^22.18.0` or `^24.0.0` on the daemon host. The tested project supplies its runner; Bun projects need an existing supported Bun executable.
+
+Install version 1.0.0 from npm:
 
 ```sh
+paseo plugin install npm:paseo-unit-test-pulse@1.0.0
+```
+
+Or select the Git release:
+
+```sh
+paseo plugin install git:mbranicky/unit-test-pulse --ref v1.0.0
+```
+
+For development, install a local checkout after preparing its dependencies:
+
+```sh
+npm ci --ignore-scripts
+npm run setup:compat
 paseo plugin install /absolute/path/to/unit-test-pulse
 ```
+
+Use `paseo plugin update unit-test-pulse` to check the installation source for an update. Install an explicit npm version again when you need a particular release. Package acquisition installs the locked production dependencies; Git installations declare the same preparation in their manifest. Runtime activation copies the helper and its bundled WebSocket dependency locally and does not download a test runner.
 
 Open **Unit Test Pulse** in a workspace through the Command Center. Choose **Install skill** to make its instructions available to new agent sessions. Existing skill files owned by another installation are left unchanged.
 
@@ -127,20 +145,20 @@ Retry counts and final errors are preserved when provided. Intermediate attempt 
 
 ## Compatibility
 
-| Component            | Integration target       | Verified locally           |
-| -------------------- | ------------------------ | -------------------------- |
-| Paseo app and daemon | `>=0.11.2 <0.13.0`       | 0.11.2 and 0.12.0 on macOS |
-| Helper Node.js       | `^22.18.0` or `^24.0.0`  | 24.16.0                    |
-| Vitest               | 4.x and 5.x              | 4.1.11 and 5.0.4           |
-| Jest                 | 30.x                     | 30.5.2                     |
-| Mocha                | 11.x and 12.x            | 11.8.0 and 12.0.3          |
-| Bun                  | 1.4.x, starting at 1.4.3 | 1.4.3                      |
-| Jasmine              | 6.x and 7.x              | 6.3.0 and 7.0.0            |
-| Node.js test runner  | 22.18+ and 24.x          | 22.18.0 and 24.16.0        |
+| Component            | Integration target       | Verified locally                           |
+| -------------------- | ------------------------ | ------------------------------------------ |
+| Paseo app and daemon | `>=0.11.2 <0.13.0`       | Desktop 0.12.0 on macOS; SDK 0.11.2/0.12.0 |
+| Helper Node.js       | `^22.18.0` or `^24.0.0`  | 22.18.0 and 24.16.0                        |
+| Vitest               | 4.x and 5.x              | 4.1.11 and 5.0.4                           |
+| Jest                 | 30.x                     | 30.5.2                                     |
+| Mocha                | 11.x and 12.x            | 11.8.0 and 12.0.3                          |
+| Bun                  | 1.4.x, starting at 1.4.3 | 1.4.3                                      |
+| Jasmine              | 6.x and 7.x              | 6.3.0 and 7.0.0                            |
+| Node.js test runner  | 22.18+ and 24.x          | 22.18.0 and 24.16.0                        |
 
 Vitest 4.1.11 and 5.0.4 contain a task-update timer edge case that can leave completed tests queued until another event or file completion. For the recognized affected implementation, the helper adds a worker preload that repairs only that timer in memory. Project files and installed dependencies are not edited; existing worker preloads are preserved. Unknown or already-fixed implementations are left unchanged. Vitest's VM module cache is bridged into the same scoped repair. Regression checks cover exact timer boundaries in fork, thread, and VM pools.
 
-The plugin typechecks against the Paseo 0.12.0 SDK and loads in the 0.12.0 daemon. The screenshot set verifies the live desktop panel, recent runs, source and diagnostic dialogs, logs, agent setup, settings, and Ghostty/Light themes on 0.12.0.
+The plugin typechecks against the Paseo 0.11.2 and 0.12.0 SDKs and loads in the 0.12.0 daemon. The screenshot set verifies the live desktop panel, recent runs, source and diagnostic dialogs, logs, agent setup, settings, and Ghostty/Light themes on 0.12.0.
 
 The helper rejects other runner majors. Other releases within these majors are integration targets, not separately verified compatibility claims. Vitest 4 is installed in an isolated development fixture to avoid mixing incompatible optional peers with Vitest 5.
 
@@ -160,7 +178,7 @@ Browser-mode tests, multi-project configurations, configuration-file changes dur
 
 ## Local data and limits
 
-Open **Settings** in the panel to inspect the current diagnostics and history policy. These limits are informational and fixed in this build.
+Open **Settings** in the panel to inspect the current diagnostics and history policy. These limits are informational and fixed in version 1.0.0.
 
 <details>
 <summary>Diagnostics and history settings</summary>
@@ -175,9 +193,9 @@ Process output and structured console logs each have a 20 MiB capture budget per
 
 Runs whose project or worktree folder has been removed are omitted from workspace history without generating warnings. Their saved results are retained under the normal history policy. Missing records during cleanup are also skipped; damaged records and unexpected read errors still produce notices.
 
-Completed history is cleaned up on cycle rollover and helper exit, keeping the latest 100 cycles per project within a 500 MiB completed-history budget where possible. Active and idle-watch records are preserved. This first build does not impose a hard global budget on all simultaneous active runs. Capture and retention settings are informational and fixed for now.
+Completed history is cleaned up on cycle rollover and helper exit, keeping the latest 100 cycles per project within a 500 MiB completed-history budget where possible. Active and idle-watch records are preserved. Version 1.0.0 does not impose a hard global budget on all simultaneous active runs. Capture and retention settings are informational and fixed for now.
 
-Captured logs can contain application secrets. The plugin does not record the full environment and does not claim automatic secret removal. Copy and export actions use captured text; no cloud service or extra account is required.
+Captured logs can contain application secrets. The plugin does not record the full environment and does not claim automatic secret removal. The helper and panel do not upload results. Copy/export actions use captured text, and an agent following the optional skill can read that text and send it to its configured provider. No additional cloud service or account is required by the plugin.
 
 For agent-readable results:
 
@@ -196,6 +214,8 @@ npm ci --ignore-scripts
 npm run setup:compat
 npm run check
 npm run test:integration
+npm run typecheck:paseo-011
+npm run test:package
 paseo plugin reload unit-test-pulse
 ```
 
@@ -203,7 +223,7 @@ paseo plugin reload unit-test-pulse
 
 Live-progress integration checks hold a fixture test open until the observer has read persisted partial results. Delayed observation and staggered command startup exercise the former timing race without requiring a short overlap window. Polling stops when a runner exits unexpectedly and includes its output and the last snapshots in failures. Child processes are stopped before temporary fixture data is removed.
 
-The [adapter examples](examples/README.md) cover Vitest, Jest, Mocha, Bun, Jasmine, and Node.js. Each project includes a cart suite with an intentional assertion failure and a separate passing pricing suite, plus logs, skips, async progress, and retries/todo where supported. Run either the native test script or its monitored equivalent from the repository root:
+The [adapter examples](https://github.com/mbranicky/unit-test-pulse/tree/v1.0.0/examples) cover Vitest, Jest, Mocha, Bun, Jasmine, and Node.js. Each project includes a cart suite with an intentional assertion failure and a separate passing pricing suite, plus logs, skips, async progress, and retries/todo where supported. Run either the native test script or its monitored equivalent from the repository root:
 
 ```sh
 npm --prefix examples/jest test
@@ -216,6 +236,8 @@ The runtime helper uses Node's standard library, a bundled `ws` client for Bun's
 
 Advanced historical comparisons, failure grouping, coverage summaries, report imports, configurable retention, and adapters for other runners are not implemented yet.
 
-Known reporting issues before 1.0: a clean Jest run can be labelled **Failed** in the summary even when every captured test passes and the process exits successfully. Its test counts and exit code remain accurate. The reporter currently reads Jest’s aggregate success flag before Jest finalizes it; this requires a separate fix that also preserves coverage and custom-reporter failures. Jest retries can also create duplicate captured test entries because retry events currently receive new occurrence identities. The Jest example uses single attempts until that identity handling is corrected.
+Jest completion uses the finalized aggregate result, so a clean run is shown as passed while coverage, snapshot, and custom-reporter failures remain unsuccessful. Retry events update the same test identity. When generated duplicate names also share a source location and the runner does not provide enough identity, ambiguous retry updates are deferred until the authoritative file-completion report.
+
+The npm release artifact is built with `npm run pack:release`. `npm run test:package` verifies its locked production installation, required documentation/assets, source parsing, Git preparation and all six adapters through the installed package. It writes the archive and a checksum report under ignored `work/release/`. See the [release procedure](RELEASING.md) before tagging or publishing.
 
 Based on the design and selected utility components of [Cypress Pulse](https://github.com/mbranicky/cypress-pulse), with its MIT attribution preserved. [MIT license](LICENSE).

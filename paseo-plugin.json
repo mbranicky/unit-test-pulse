@@ -15,5 +15,6 @@
     "assets/source-preview.png",
     "assets/recent-runs.png",
     "assets/settings.png"
-  ]
+  ],
+  "build": [["npm", "ci", "--omit=dev", "--ignore-scripts"]]
 }

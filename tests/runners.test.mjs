@@ -582,3 +582,214 @@ for (const version of ["vitest", "vitest4"])
         assert.equal(final.completed, final.total);
       },
     );
+
+// Release regressions: use the actual installed Jest and its public reporter API.
+test(
+  "Jest: a clean run reports passed after reporters finish",
+  { timeout: 30000 },
+  async (t) => {
+    const f = await fixture(t, "jest");
+    await writeFile(f.file, "test('clean',()=>expect(1).toBe(1));");
+    const result = await launch(f, "jest").done;
+    assert.equal(result.code, 0, result.text);
+    const [run] = await runs(f);
+    assert.equal(run.status, "passed");
+    assert.equal(run.passed, 1);
+    assert.equal(run.totalComplete, true);
+  },
+);
+for (const immediate of [false, true])
+  for (const locations of [false, true])
+    test(
+      `Jest: ${immediate ? "immediate" : "deferred"} retries with locations ${locations} keep duplicate declarations distinct`,
+      { timeout: 30000 },
+      async (t) => {
+        const f = await fixture(t, "jest");
+        await writeFile(
+          join(f.root, "jest.config.cjs"),
+          `module.exports={testMatch:['<rootDir>/*.test.cjs'],testLocationInResults:${locations}};`,
+        );
+        await writeFile(
+          f.file,
+          `jest.retryTimes(2,{retryImmediately:${immediate}});let n=0;test('flaky',()=>expect(++n).toBe(2));test('same',()=>{});test('same',()=>expect(1).toBe(2));const attempts={};test.each([1,2])('parameter same',value=>expect(attempts[value]=(attempts[value]||0)+1).toBe(2));`,
+        );
+        const result = await launch(f, "jest").done;
+        assert.equal(result.code, 1, result.text);
+        const [run] = await runs(f);
+        assert.equal(run.total, 5, JSON.stringify(run));
+        assert.equal(run.passed, 1);
+        assert.equal(run.flaky, 3);
+        assert.equal(run.failed, 1);
+        assert.equal(run.retries, 5);
+        assert.equal(new Set(run.tests.map((t) => t.id)).size, 5);
+        assert.equal(run.totalComplete, true);
+      },
+    );
+test(
+  "Jest: custom reporter getLastError and snapshot failures retain native failure status",
+  { timeout: 30000 },
+  async (t) => {
+    const f = await fixture(t, "jest");
+    await writeFile(f.file, "test('clean assertions',()=>expect(1).toBe(1));");
+    await writeFile(
+      join(f.root, "last-error.cjs"),
+      "module.exports=class {getLastError(){return new Error('reporter failure marker')}};",
+    );
+    await writeFile(
+      join(f.root, "jest.config.cjs"),
+      "module.exports={testMatch:['<rootDir>/*.test.cjs'],reporters:['default','<rootDir>/last-error.cjs']};",
+    );
+    let result = await launch(f, "jest").done;
+    assert.equal(result.code, 1, result.text);
+    let all = await runs(f);
+    assert.equal(all[0].passed, 1);
+    assert.notEqual(all[0].status, "passed");
+    await writeFile(
+      join(f.root, "jest.config.cjs"),
+      "module.exports={testMatch:['<rootDir>/*.test.cjs']};",
+    );
+    await writeFile(
+      f.file,
+      "test('obsolete snapshot',()=>expect('original').toMatchSnapshot());",
+    );
+    let command = captureProcess(
+      spawn(
+        process.execPath,
+        [
+          join(plugin, "node_modules/jest/bin/jest.js"),
+          "--runInBand",
+          "--updateSnapshot",
+        ],
+        { cwd: f.root, stdio: ["ignore", "pipe", "pipe"] },
+      ),
+    );
+    f.commands.push(command);
+    assert.equal((await command.done).code, 0);
+    await writeFile(f.file, "test('changed snapshot',()=>expect(1).toBe(1));");
+    command = captureProcess(
+      spawn(
+        process.execPath,
+        [
+          join(plugin, "server/cli.mjs"),
+          "run",
+          "--project",
+          f.root,
+          "--state-dir",
+          f.state,
+          "--runner",
+          "jest",
+          "--",
+          "--runInBand",
+          "--ci",
+        ],
+        { cwd: f.root, stdio: ["ignore", "pipe", "pipe"] },
+      ),
+    );
+    f.commands.push(command);
+    result = await command.done;
+    assert.equal(result.code, 1, result.text);
+    all = await runs(f);
+    assert.ok(all.every((r) => r.status !== "passed"));
+  },
+);
+
+test(
+  "Jest: watch completion uses finalized success for clean, failing, and recovered cycles",
+  { timeout: 30000 },
+  async (t) => {
+    const f = await fixture(t, "jest");
+    await writeFile(f.file, "test('clean cycle',()=>expect(1).toBe(1));");
+    const command = launch(f, "jest", true);
+    const first = await until(f, async () =>
+      (await runs(f)).find(
+        (r) =>
+          r.watching &&
+          r.endedAt &&
+          r.tests.some((t) => t.title === "clean cycle"),
+      ),
+    );
+    assert.equal(first.status, "passed");
+    await writeFile(f.file, "test('failed cycle',()=>expect(1).toBe(2));");
+    const failed = await until(f, async () =>
+      (await runs(f)).find(
+        (r) =>
+          r.id !== first.id &&
+          r.watching &&
+          r.endedAt &&
+          r.tests.some((t) => t.title === "failed cycle"),
+      ),
+    );
+    assert.equal(failed.status, "failed");
+    await writeFile(f.file, "test('recovered cycle',()=>expect(1).toBe(1));");
+    const recovered = await until(f, async () =>
+      (await runs(f)).find(
+        (r) =>
+          r.watching &&
+          r.endedAt &&
+          r.tests.some((t) => t.title === "recovered cycle"),
+      ),
+    );
+    assert.equal(recovered.status, "passed");
+    assert.equal(recovered.total, 1);
+    await command.stop();
+  },
+);
+test(
+  "Jest: parallel worker retries remain independent across files",
+  { timeout: 30000 },
+  async (t) => {
+    const f = await fixture(t, "jest");
+    const body =
+      "jest.retryTimes(1,{retryImmediately:true});let n=0;test('same',()=>expect(++n).toBe(2));test('same',()=>{});";
+    await writeFile(f.file, body);
+    await writeFile(join(f.root, "second.test.cjs"), body);
+    const command = captureProcess(
+      spawn(
+        process.execPath,
+        [
+          join(plugin, "server/cli.mjs"),
+          "run",
+          "--project",
+          f.root,
+          "--state-dir",
+          f.state,
+          "--runner",
+          "jest",
+          "--",
+          "--maxWorkers=2",
+        ],
+        { cwd: f.root, stdio: ["ignore", "pipe", "pipe"] },
+      ),
+    );
+    f.commands.push(command);
+    const result = await command.done;
+    assert.equal(result.code, 0, result.text);
+    const [run] = await runs(f);
+    assert.equal(run.status, "passed");
+    assert.equal(run.total, 4);
+    assert.equal(run.flaky, 2);
+    assert.equal(run.passed, 2);
+    assert.equal(run.files.length, 2);
+  },
+);
+test(
+  "Jest: reporter failure with a zero native failure exit code is still unsuccessful",
+  { timeout: 30000 },
+  async (t) => {
+    const f = await fixture(t, "jest");
+    await writeFile(f.file, "test('clean assertions',()=>{});");
+    await writeFile(
+      join(f.root, "last-error.cjs"),
+      "module.exports=class {getLastError(){return Error('reporter marker')}}",
+    );
+    await writeFile(
+      join(f.root, "jest.config.cjs"),
+      "module.exports={testMatch:['<rootDir>/*.test.cjs'],testFailureExitCode:0,reporters:['<rootDir>/last-error.cjs']};",
+    );
+    const result = await launch(f, "jest").done;
+    assert.equal(result.code, 0, result.text);
+    const [run] = await runs(f);
+    assert.equal(run.passed, 1);
+    assert.notEqual(run.status, "passed");
+  },
+);
