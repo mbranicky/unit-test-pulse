@@ -71,10 +71,12 @@ export function RunSummary({
           }}
         >
           {(
-            { vitest: "Vitest", jest: "Jest", node: "Node.js" } as Record<
-              string,
-              string
-            >
+            {
+              vitest: "Vitest",
+              jest: "Jest",
+              mocha: "Mocha",
+              node: "Node.js",
+            } as Record<string, string>
           )[run.runner] || run.runner}{" "}
           {run.runnerVersion} ·{" "}
           {run.mode === "watch" ? `Watch · cycle ${run.cycle}` : "One-shot run"}

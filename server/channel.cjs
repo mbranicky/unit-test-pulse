@@ -2,6 +2,11 @@
 // be dropped under backpressure; results are never dropped to make room for logs.
 let pendingBytes = 0;
 let warned = false;
+const waiters = [];
+function delivered(bytes) {
+  pendingBytes -= bytes;
+  if (!pendingBytes) for (const resolve of waiters.splice(0)) resolve();
+}
 function deliver(event) {
   if (!process.connected) return;
   const message = { pulse: true, event };
@@ -20,10 +25,10 @@ function deliver(event) {
   pendingBytes += bytes;
   try {
     process.send(message, (error) => {
-      pendingBytes -= bytes;
+      delivered(bytes);
     });
   } catch {
-    pendingBytes -= bytes;
+    delivered(bytes);
   }
 }
 module.exports = (event) => {
@@ -50,3 +55,10 @@ module.exports = (event) => {
   }
   deliver(event);
 };
+
+// Disconnecting Node IPC can discard queued large messages. Wait for every
+// send callback before closing the worker's channel, including signal exits.
+module.exports.flush = () =>
+  pendingBytes === 0
+    ? Promise.resolve()
+    : new Promise((resolve) => waiters.push(resolve));

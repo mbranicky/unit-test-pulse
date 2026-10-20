@@ -5,6 +5,7 @@ import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { vitestReporter } from "./vitest-reporter.mjs";
 import { launchNode } from "./node-runner.mjs";
+import { launchMocha } from "./mocha-runner.mjs";
 import { plainError } from "./model.mjs";
 const payload = JSON.parse(process.env.UNIT_TEST_PULSE_PAYLOAD);
 delete process.env.UNIT_TEST_PULSE_PAYLOAD;
@@ -21,6 +22,7 @@ for (const signal of ["SIGINT", "SIGTERM"])
     const timeout = setTimeout(() => process.exit(130), 3000);
     timeout.unref();
     await close(signal).catch(() => {});
+    await send.flush();
     process.exit(130);
   });
 try {
@@ -78,6 +80,12 @@ try {
       }
     }
     if (!payload.watch) await ctx.close();
+  } else if (payload.runner === "mocha") {
+    const mocha = launchMocha(payload, send);
+    close = mocha.close;
+    const result = await mocha.done;
+    if (result.signal) send({ type: "interrupted" });
+    process.exitCode = result.code ?? 130;
   } else if (payload.runner === "node") {
     const node = launchNode(payload, send);
     close = node.close;
@@ -147,5 +155,6 @@ try {
   process.exitCode = 1;
 }
 if (!payload.watch || fatal) {
+  await send.flush();
   if (process.connected) process.disconnect();
 }

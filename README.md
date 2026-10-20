@@ -2,7 +2,7 @@
 
 Follow JavaScript and TypeScript unit tests in Paseo while an agent works. Inspect live results grouped by test file, assertion failures, stack traces, current source, and captured output from the same panel.
 
-**Status:** early build, version 0.4.0, with live Vitest, Jest, and Node.js test-runner monitoring. Tested versions and current limitations are listed below.
+**Status:** early build, version 0.5.0, with live Vitest, Jest, Mocha, and Node.js test-runner monitoring. Tested versions and current limitations are listed below.
 
 <p>
   <img src="assets/running.png" width="360" alt="Unit Test Pulse showing completed outcomes and a test still running in the storefront example">
@@ -38,6 +38,7 @@ The plugin installs a dependency-free helper on the daemon host:
 node ~/.local/share/unit-test-pulse/cli.mjs doctor --project /absolute/project
 node ~/.local/share/unit-test-pulse/cli.mjs run --project /absolute/project --runner vitest -- --testNamePattern 'example'
 node ~/.local/share/unit-test-pulse/cli.mjs run --project /absolute/project --runner jest -- --runInBand
+node ~/.local/share/unit-test-pulse/cli.mjs run --project /absolute/project --runner mocha -- --grep 'example'
 node ~/.local/share/unit-test-pulse/cli.mjs run --project /absolute/project --runner node -- --test-name-pattern 'example' tests/example.test.mjs
 ```
 
@@ -51,9 +52,19 @@ Use `--runner node` for tests run with `node --test`, including `node:test` / `n
 
 Put native Node options before file paths, just as with `node --test`. The helper adds `--test` automatically; `--import`, `--require`, `--test-name-pattern`, file selection, concurrency, coverage options, and existing reporters/destinations keep their native meaning. Reporter settings in `NODE_OPTIONS` are also preserved. Use helper `--watch` before `--` for an ongoing watcher. A Node watch cycle records only the files that Node re-executes, so an unchanged file is absent from later cycles.
 
-`doctor` always lists the available built-in runner. If no Vitest/Jest package is installed, an omitted `--runner` selects Node.js. An existing single installed Vitest or Jest runner remains the default; use an explicit selection when several are installed.
+`doctor` always lists the available built-in runner. If no supported-framework package is installed, an omitted `--runner` selects Node.js. A single installed Vitest, Jest, or Mocha runner remains the default; use an explicit selection when several are installed.
 
-Node assertion reports keep the original assertion stack and formatted expected/actual values. Output and diagnostics supplied by Node carry file identity, not individual test ownership. Test results follow Node's declaration-ordered reporting, so an earlier slow concurrent test can delay later results. An unmatched name filter is shown as no executed tests, even when Node also reports a successful file wrapper. Separate adapters are still required for Mocha, AVA, Tape, and other independent runners.
+Node assertion reports keep the original assertion stack and formatted expected/actual values. Output and diagnostics supplied by Node carry file identity, not individual test ownership. Test results follow Node's declaration-ordered reporting, so an earlier slow concurrent test can delay later results. An unmatched name filter is shown as no executed tests, even when Node also reports a successful file wrapper. Separate adapters are still required for AVA, Bun, Jasmine, Tape, and other independent runners.
+
+## Mocha tests
+
+Use `--runner mocha` for Mocha 11/12 projects, including suites using Chai, Node assertions, or other assertion libraries. The helper runs the project's native Mocha CLI, adding an external observer alongside its existing reporter. Test sources, configuration, installed packages, reporter options, async reporter completion, preloads, and native exit codes are preserved. `--config`, `--grep`, `--ui`, `--require`, `--node-option`, retries, bail, and parallel execution retain their native meaning. TypeScript requires the runtime's type stripping or the project's existing loader; monitoring does not install one.
+
+Add helper `--watch` before `--` for ongoing monitoring. Each rerun has independent results and an idle state. Without that flag or a native `--watch` / `-w` argument, the helper selects one-shot execution even if the configuration enables watching. Mocha's parallel reporter buffers events until each file completes, so it does not provide immediate test-by-test progress within an active worker file.
+
+Failure reports retain assertion stacks and available expected/actual values; hook and global fixture failures remain visible even when assertions pass. Mocha 11 can exit with code 0 after a global teardown error; the panel still reports the captured error while the helper preserves that native exit code. Final retry counts distinguish flaky passes. Mocha's skipped tests and pending declarations both appear as **Skipped**. Dry runs display **No executed tests**. Source previews support BDD/TDD declarations, `context` / `specify`, and Mocha import aliases. Mocha does not supply declaration locations, so duplicate or generated titles may require opening the full file.
+
+Mocha stdout/stderr is available in **Run output**. Its reporter events do not identify which test owns console output, so the helper does not assign that output to individual tests or files. A private temporary result journal bridges native CLI subprocesses and forced exits; it is removed when the helper stops normally.
 
 ## Dashboard and diagnostics
 
@@ -61,7 +72,7 @@ Node assertion reports keep the original assertion stack and formatted expected/
 - The summary distinguishes clean passes, passes after retry, failures, skipped tests, todo tests, and cancellation. Test counts remain **known** until collection finishes. No-test and skip/todo-only cycles display **No executed tests**.
 - File cards preserve full counts while filters and search narrow the displayed tests. Details are paged in groups of 200; select a file to browse its tests. The panel lists 30 recent runs; the helper can list all retained runs.
 - Expand a test for its failure message, **Stack trace & details**, and **Logs**. Reports include captured errors, available diffs, runner/project identity, retry information, and an output excerpt. **Run report** also lists the slowest captured test durations.
-- **Test details** shows the selected `it()` / `test()` declaration above its report, with original line numbers, **Copy source**, and **Open full file**. Nested suites, standard modifiers, aliases imported from Vitest/Jest/Node, CommonJS Node aliases, context subtests, and parameterized tests with runner locations are supported. Older runs use an unambiguous title-path match. Generated/custom declarations that cannot be matched show an explanation and full-file access.
+- **Test details** shows the selected `it()` / `test()` declaration above its report, with original line numbers, **Copy source**, and **Open full file**. Nested suites, standard modifiers, aliases imported from Vitest/Jest/Mocha/Node, CommonJS Mocha/Node aliases, context subtests, and parameterized tests with runner locations are supported. Older runs use an unambiguous title-path match. Generated/custom declarations that cannot be matched show an explanation and full-file access.
 - Click a filename for a read-only preview of its current contents with line numbers. The file may have changed since execution. Source reads are restricted to files reported by the run, within the selected workspace, up to 1 MiB.
 - **Run output** contains stdout/stderr plus separately captured console records. Log views support text search, stream filters, following the latest 100 records, pausing to browse pages, and copying a page.
 - The workspace header indicates active runs and recent outcomes even when the panel is closed.
@@ -100,6 +111,7 @@ Retry counts and final errors are preserved when provided. Intermediate attempt 
 | Helper Node.js       | `^22.18.0` or `^24.0.0` | 24.16.0                    |
 | Vitest               | 4.x and 5.x             | 4.1.11 and 5.0.4           |
 | Jest                 | 30.x                    | 30.5.2                     |
+| Mocha                | 11.x and 12.x           | 11.8.0 and 12.0.3          |
 | Node.js test runner  | 22.18+ and 24.x         | 22.18.0 and 24.16.0        |
 
 Vitest 4.1.11 and 5.0.4 contain a task-update timer edge case that can leave completed tests queued until another event or file completion. For the recognized affected implementation, the helper adds a worker preload that repairs only that timer in memory. Project files and installed dependencies are not edited; existing worker preloads are preserved. Unknown or already-fixed implementations are left unchanged. Vitest's VM module cache is bridged into the same scoped repair. Regression checks cover exact timer boundaries in fork, thread, and VM pools.
@@ -111,6 +123,8 @@ The helper rejects other runner majors. Other releases within these majors are i
 Real-runner checks cover partial results, assertion errors, test logs, retries, skip/todo, native-versus-monitored reporter/configuration behavior, watch reruns, startup errors, concurrent commands, and interruption. The unit and real-runner integration checks passed with Node 22.18.0 and 24.16.0. The live Paseo dark-theme panel was checked at approximately 320 px, including stack/diff reports, test logs, source previews, and filtering. Ghostty and Light theme desktop captures are included above. Native mobile visual checks remain pending.
 
 Node integration checks also cover ESM/CommonJS/TypeScript and assertion-only files without project dependencies, native reporter destinations and preloads, nested and duplicate titles, strict assertion values, source selection, watch cycles, interruption, timeouts, cancellation, and empty selections.
+
+Mocha integration checks cover both majors: gated live results, strict assertion details, retries, skipped/pending tests, duplicate titles, source selection, ESM/CommonJS/TypeScript, TDD aliases, unchanged native configuration and reporters, Node-flag subprocesses, forced exit, hook failures, parallel results, watch reruns, concurrent commands, interruption, dry runs, bail, empty selections, and startup errors. Additional regressions cover exhausted retries, zero native failure exit codes, reporter/global-teardown failures, large Unicode records, and flushing queued IPC results before disconnect.
 
 The compatibility suite also checks duplicate and parameterized titles, per-test source selection, a nested Jest configuration with a preset reporter, custom environment and TypeScript transform, and a Jest coverage-threshold failure. Source extraction checks cover nested suites, imported aliases, modifiers, JSX, original line numbers, ambiguous declarations, and workspace boundaries.
 
@@ -167,7 +181,7 @@ node server/cli.mjs run --project examples/vitest --workspace "$PWD" --runner vi
 
 A nonzero exit is expected from that demonstration.
 
-The runtime helper uses Node's standard library and, for Vitest/Jest, the monitored project's installed runner. Paseo provides the panel's runtime libraries. The plugin uses TypeScript as a runtime dependency to parse test declarations for source previews without executing the source. Test runners and SDK tooling are development dependencies.
+The runtime helper uses Node's standard library and, for Vitest/Jest/Mocha, the monitored project's installed runner. Paseo provides the panel's runtime libraries. The plugin uses TypeScript as a runtime dependency to parse test declarations for source previews without executing the source. Test runners and SDK tooling are development dependencies.
 
 Advanced historical comparisons, failure grouping, coverage summaries, report imports, configurable retention, and adapters for other runners are not implemented yet.
 

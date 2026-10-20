@@ -14,7 +14,7 @@ import {
   logWriter,
   prune,
 } from "./store.mjs";
-const help = `Unit Test Pulse\n\n  doctor --project PATH\n  run --project PATH [--workspace PATH] [--runner vitest|jest|node] [--watch] -- RUNNER_ARGUMENTS\n  list --project PATH\n  show --project PATH --run-id ID\n  logs --project PATH --run-id ID [--test-id ID] [--file-id ID] [--cursor N] [--search TEXT]\n\nUse --state-dir PATH before -- to override local state. Runner arguments after -- retain their native meaning; use helper --watch to enable watching.\n`;
+const help = `Unit Test Pulse\n\n  doctor --project PATH\n  run --project PATH [--workspace PATH] [--runner vitest|jest|mocha|node] [--watch] -- RUNNER_ARGUMENTS\n  list --project PATH\n  show --project PATH --run-id ID\n  logs --project PATH --run-id ID [--test-id ID] [--file-id ID] [--cursor N] [--search TEXT]\n\nUse --state-dir PATH before -- to override local state. Runner arguments after -- retain their native meaning; use helper --watch to enable watching.\n`;
 function parse(args) {
   const split = args.indexOf("--"),
     before = split < 0 ? args : args.slice(0, split),
@@ -118,13 +118,19 @@ export async function main(args = process.argv.slice(2)) {
           : null;
   if (!selected)
     throw new Error(
-      "Select a runner with --runner vitest, --runner jest, or --runner node. Run doctor to see candidates.",
+      "Select a runner with --runner vitest, --runner jest, --runner mocha, or --runner node. Run doctor to see candidates.",
     );
   if (!selected.supported)
     throw new Error(
-      `Unsupported ${selected.runner} ${selected.version}. Integrations target Vitest 4.x/5.x, Jest 30.x, and Node.js 22.x/24.x; see README for tested versions.`,
+      `Unsupported ${selected.runner} ${selected.version}. Integrations target Vitest 4.x/5.x, Jest 30.x, Mocha 11.x/12.x, and Node.js 22.x/24.x; see README for tested versions.`,
     );
-  if (selected.runner === "node" && native.includes("--watch"))
+  if (
+    ["node", "mocha"].includes(selected.runner) &&
+    native.some(
+      (arg) =>
+        arg === "--watch" || (selected.runner === "mocha" && arg === "-w"),
+    )
+  )
     options.watch = true;
   const workspaceRoot = realpathSync(resolve(options.workspace || projectRoot));
   if (!inside(workspaceRoot, projectRoot))

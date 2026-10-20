@@ -16,13 +16,28 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
     throw new Error(
       "The current file could not be parsed. Open the full file instead.",
     );
-  const tests = new Set(["it", "test", "fit", "xit", "xtest"]);
-  const suites = new Set(["describe", "fdescribe", "xdescribe", "suite"]);
+  const tests = new Set([
+    "it",
+    "test",
+    "fit",
+    "xit",
+    "xtest",
+    "specify",
+    "xspecify",
+  ]);
+  const suites = new Set([
+    "describe",
+    "fdescribe",
+    "xdescribe",
+    "suite",
+    "context",
+    "xcontext",
+  ]);
   const namespaces = new Set();
   for (const statement of source.statements) {
     if (
       !ts.isImportDeclaration(statement) ||
-      !["vitest", "@jest/globals", "node:test"].includes(
+      !["vitest", "@jest/globals", "node:test", "mocha"].includes(
         statement.moduleSpecifier.text,
       )
     )
@@ -34,6 +49,11 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
       tests.add(statement.importClause.name.text);
       namespaces.add(statement.importClause.name.text);
     }
+    if (
+      statement.moduleSpecifier.text === "mocha" &&
+      statement.importClause?.name
+    )
+      namespaces.add(statement.importClause.name.text);
     const bindings = statement.importClause?.namedBindings;
     if (bindings && ts.isNamespaceImport(bindings))
       namespaces.add(bindings.name.text);
@@ -44,7 +64,7 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
         if (suites.has(name)) suites.add(item.name.text);
       }
   }
-  // CommonJS Node tests often alias the test function or destructure it().
+  // CommonJS tests can alias Node test() or destructure Mocha/Node declarations.
   for (const statement of source.statements) {
     if (!ts.isVariableStatement(statement)) continue;
     for (const declaration of statement.declarationList.declarations) {
@@ -54,11 +74,12 @@ export function extractTestSource(file, text, test, ts = loadParser()) {
         !ts.isCallExpression(call) ||
         !ts.isIdentifier(call.expression) ||
         call.expression.text !== "require" ||
-        call.arguments[0]?.text !== "node:test"
+        !["node:test", "mocha"].includes(call.arguments[0]?.text)
       )
         continue;
       if (ts.isIdentifier(declaration.name)) {
-        tests.add(declaration.name.text);
+        if (call.arguments[0].text === "node:test")
+          tests.add(declaration.name.text);
         namespaces.add(declaration.name.text);
       } else if (ts.isObjectBindingPattern(declaration.name)) {
         for (const item of declaration.name.elements) {

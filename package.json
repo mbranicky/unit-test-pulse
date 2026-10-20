@@ -1,7 +1,7 @@
 {
   "name": "paseo-unit-test-pulse",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "files": [
     "paseo-plugin.json",
     "OVERVIEW.md",
@@ -28,13 +28,15 @@
   "devDependencies": {
     "@getpaseo/plugin": "0.12.0",
     "@tanstack/react-query": "^5.90.11",
+    "@types/node": "24.0.0",
     "@types/react": "~19.2.0",
+    "jest": "30.5.2",
+    "mocha": "12.0.3",
+    "mocha11": "npm:mocha@11.8.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
-    "zod": "^4.4.3",
-    "@types/node": "24.0.0",
     "vitest": "5.0.4",
-    "jest": "30.5.2"
+    "zod": "^4.4.3"
   },
   "description": "Live JavaScript and TypeScript unit test diagnostics for Paseo",
   "license": "MIT",

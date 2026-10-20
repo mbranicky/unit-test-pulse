@@ -496,9 +496,9 @@ export function PulsePanel({
                 lineHeight: 20,
               }}
             >
-              Use the Unit Test Pulse skill to run Vitest or Jest with your
-              project’s usual environment and test selection. Results, stacks,
-              and captured logs will appear here.
+              Use the Unit Test Pulse skill to run Vitest, Jest, Mocha, or
+              Node.js tests with your project’s usual environment and test
+              selection. Results, stacks, and captured logs will appear here.
             </Text>
             {data?.helper ? (
               <Text

@@ -16,12 +16,16 @@ export function inside(root, file) {
 }
 export function discover(root) {
   const require = createRequire(join(realpathSync(root), "package.json"));
-  const packages = ["vitest", "jest"].flatMap((runner) => {
+  const packages = ["vitest", "jest", "mocha"].flatMap((runner) => {
     try {
       const file = require.resolve(`${runner}/package.json`);
       const { version } = JSON.parse(readFileSync(file, "utf8"));
       const supported =
-        runner === "vitest" ? /^[45]\./.test(version) : /^30\./.test(version);
+        runner === "vitest"
+          ? /^[45]\./.test(version)
+          : runner === "mocha"
+            ? /^(11|12)\./.test(version)
+            : /^30\./.test(version);
       return [{ runner, version, packageFile: file, supported }];
     } catch {
       return [];

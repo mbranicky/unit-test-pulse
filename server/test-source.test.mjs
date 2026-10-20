@@ -185,3 +185,45 @@ test("Node imports, CommonJS aliases, and context subtests resolve individual de
     assert.doesNotMatch(result.text, /describe|group|check\('parent'/);
   }
 });
+
+test("Mocha BDD/TDD, context/specify, and module aliases select individual declarations", () => {
+  for (const [text, title, parents, expression] of [
+    [
+      "import {describe as group,it as check} from 'mocha';group('suite',()=>check('case',()=>{}));",
+      "case",
+      ["suite"],
+      "check",
+    ],
+    [
+      "const {suite:group,test:check}=require('mocha');group('suite',()=>check('case',()=>{}));",
+      "case",
+      ["suite"],
+      "check",
+    ],
+    [
+      "import mocha from 'mocha';mocha.context('suite',()=>mocha.specify('case',()=>{}));",
+      "case",
+      ["suite"],
+      "mocha.specify",
+    ],
+    [
+      "const m=require('mocha');m.context('suite',()=>m.it.skip('case',()=>{}));",
+      "case",
+      ["suite"],
+      "m.it.skip",
+    ],
+    [
+      "context('suite',()=>{xspecify('case',()=>{});specify('other',()=>{});});",
+      "case",
+      ["suite"],
+      "xspecify",
+    ],
+  ]) {
+    const source = extractTestSource(
+      "example.test.ts",
+      text,
+      selected(title, parents),
+    );
+    assert.ok(source.text.startsWith(expression + "("), source.text);
+  }
+});

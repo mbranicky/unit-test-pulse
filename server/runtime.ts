@@ -19,6 +19,9 @@ const files = [
   "jest-reporter.cjs",
   "node-runner.mjs",
   "node-reporter.mjs",
+  "mocha-runner.mjs",
+  "mocha-bridge.mjs",
+  "mocha-reporter.mjs",
   "channel.cjs",
 ];
 export async function findPluginDirectory(): Promise<string> {
