@@ -1,5 +1,16 @@
 # Release notes
 
+## 1.0.1
+
+- Restore installation on Paseo 0.13 with a verified `>=0.11.2 <0.14.0` compatibility range. Preserve the locked 0.12.0 development SDK and 0.11.2 minimum checks; add exact 0.13.1 and 0.13.2 SDK checks to CI.
+- Verify isolated 0.13.1/0.13.2 daemon activation, reload during execution, live results, diagnostics, source, logs, search, history and skill links; verify the populated panel in the installed Paseo 0.13.1 macOS app.
+- Add manual GitHub Actions publication from the exact tested GitHub Release archive, with npm trusted publishing and verification gates.
+
+- Clarify the local helper copy and launcher locations in the plugin listing overview.
+- Document all three agent skill-link folders and the protection of existing files owned by other installations, following registry review feedback.
+
+Runner integrations and runtime behavior are unchanged.
+
 ## 1.0.0
 
 First stable release of Unit Test Pulse for Paseo.

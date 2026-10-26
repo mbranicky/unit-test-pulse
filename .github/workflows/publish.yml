@@ -1,0 +1,90 @@
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published GitHub Release version, for example 1.0.1
+        required: true
+        type: string
+      mode:
+        description: Preview, publish once, or verify a previously accepted publication
+        required: true
+        default: dry-run
+        type: choice
+        options: [dry-run, publish, verify]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify release and publish selected package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: npm
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_MODE: ${{ inputs.mode }}
+      NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+      NPM_CONFIG_IGNORE_SCRIPTS: "true"
+    steps:
+      - name: Require the main branch
+        if: github.ref != 'refs/heads/main' || github.repository != 'mbranicky/unit-test-pulse'
+        run: |
+          echo 'Run this workflow from main in mbranicky/unit-test-pulse.' >&2
+          exit 1
+
+      - name: Check out trusted workflow tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up publishing Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
+
+      - name: Require an npm CLI with trusted publishing support
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          version = subprocess.check_output(['npm', '--version'], text=True).strip()
+          assert tuple(map(int, version.split('.'))) >= (11, 5, 1), 'npm 11.5.1+ is required for trusted publishing'
+          print('Publishing with npm', version)
+          PY
+
+      - name: Verify release, tag, main checks and exact package
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/npm-release.py prepare --version "$RELEASE_VERSION" --mode "$RELEASE_MODE"
+
+      - name: Preview npm publication
+        if: inputs.mode == 'dry-run'
+        env:
+          RELEASE_ARTIFACT: ${{ steps.release.outputs.artifact }}
+        run: npm publish "$RELEASE_ARTIFACT" --dry-run --ignore-scripts --access public
+
+      - name: Publish exact release package using npm trusted publishing
+        if: inputs.mode == 'publish'
+        env:
+          RELEASE_ARTIFACT: ${{ steps.release.outputs.artifact }}
+        run: npm publish "$RELEASE_ARTIFACT" --ignore-scripts --access public
+
+      - name: Verify registry metadata and downloaded package
+        if: inputs.mode == 'publish' || inputs.mode == 'verify'
+        env:
+          RELEASE_ARTIFACT: ${{ steps.release.outputs.artifact }}
+        run: python3 scripts/npm-release.py verify --version "$RELEASE_VERSION" --artifact "$RELEASE_ARTIFACT"
