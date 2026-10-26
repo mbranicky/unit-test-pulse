@@ -26,7 +26,8 @@
     "setup:compat": "npm ci --prefix tests/compat/vitest4 --ignore-scripts && node node_modules/bun/install.js",
     "pack:release": "node scripts/package.mjs",
     "test:package": "node scripts/check-package.mjs",
-    "typecheck:paseo-011": "node scripts/check-paseo-sdk.mjs"
+    "typecheck:paseo-011": "node scripts/check-paseo-sdk.mjs",
+    "typecheck:paseo-013": "node scripts/check-paseo-sdk.mjs 0.13.1 && node scripts/check-paseo-sdk.mjs 0.13.2"
   },
   "devDependencies": {
     "@getpaseo/plugin": "0.12.0",
@@ -78,6 +79,7 @@
     "node-test"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

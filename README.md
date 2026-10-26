@@ -20,7 +20,7 @@ These are real Paseo 0.12.0 desktop captures on macOS, using an isolated storefr
 
 ## Get started
 
-Use Paseo app and daemon `>=0.11.2 <0.13.0`, with Node.js `^22.18.0` or `^24.0.0` on the daemon host. The tested project supplies its runner; Bun projects need an existing supported Bun executable.
+Use Paseo app and daemon `>=0.11.2 <0.14.0`, with Node.js `^22.18.0` or `^24.0.0` on the daemon host. The tested project supplies its runner; Bun projects need an existing supported Bun executable.
 
 Install version 1.0.1 from npm:
 
@@ -145,20 +145,20 @@ Retry counts and final errors are preserved when provided. Intermediate attempt 
 
 ## Compatibility
 
-| Component            | Integration target       | Verified locally                           |
-| -------------------- | ------------------------ | ------------------------------------------ |
-| Paseo app and daemon | `>=0.11.2 <0.13.0`       | Desktop 0.12.0 on macOS; SDK 0.11.2/0.12.0 |
-| Helper Node.js       | `^22.18.0` or `^24.0.0`  | 22.18.0 and 24.16.0                        |
-| Vitest               | 4.x and 5.x              | 4.1.11 and 5.0.4                           |
-| Jest                 | 30.x                     | 30.5.2                                     |
-| Mocha                | 11.x and 12.x            | 11.8.0 and 12.0.3                          |
-| Bun                  | 1.4.x, starting at 1.4.3 | 1.4.3                                      |
-| Jasmine              | 6.x and 7.x              | 6.3.0 and 7.0.0                            |
-| Node.js test runner  | 22.18+ and 24.x          | 22.18.0 and 24.16.0                        |
+| Component            | Integration target       | Verified locally                                                |
+| -------------------- | ------------------------ | --------------------------------------------------------------- |
+| Paseo app and daemon | `>=0.11.2 <0.14.0`       | Desktop 0.12.0/0.13.1 on macOS; SDK 0.11.2/0.12.0/0.13.1/0.13.2 |
+| Helper Node.js       | `^22.18.0` or `^24.0.0`  | 22.18.0 and 24.16.0                                             |
+| Vitest               | 4.x and 5.x              | 4.1.11 and 5.0.4                                                |
+| Jest                 | 30.x                     | 30.5.2                                                          |
+| Mocha                | 11.x and 12.x            | 11.8.0 and 12.0.3                                               |
+| Bun                  | 1.4.x, starting at 1.4.3 | 1.4.3                                                           |
+| Jasmine              | 6.x and 7.x              | 6.3.0 and 7.0.0                                                 |
+| Node.js test runner  | 22.18+ and 24.x          | 22.18.0 and 24.16.0                                             |
 
 Vitest 4.1.11 and 5.0.4 contain a task-update timer edge case that can leave completed tests queued until another event or file completion. For the recognized affected implementation, the helper adds a worker preload that repairs only that timer in memory. Project files and installed dependencies are not edited; existing worker preloads are preserved. Unknown or already-fixed implementations are left unchanged. Vitest's VM module cache is bridged into the same scoped repair. Regression checks cover exact timer boundaries in fork, thread, and VM pools.
 
-The plugin typechecks against the Paseo 0.11.2 and 0.12.0 SDKs and loads in the 0.12.0 daemon. The screenshot set verifies the live desktop panel, recent runs, source and diagnostic dialogs, logs, agent setup, settings, and Ghostty/Light themes on 0.12.0.
+The plugin typechecks against the Paseo 0.11.2, 0.12.0, 0.13.1 and 0.13.2 SDKs. Isolated 0.13.1 and 0.13.2 daemons verify activation, reload during a test run, live collection, persistent history, diagnostics, logs, source previews, search and skill links. The populated panel and command registration are also verified in the installed Paseo 0.13.1 macOS app. The screenshot set verifies the live desktop panel, recent runs, source and diagnostic dialogs, logs, agent setup, settings, and Ghostty/Light themes on 0.12.0.
 
 The helper rejects other runner majors. Other releases within these majors are integration targets, not separately verified compatibility claims. Vitest 4 is installed in an isolated development fixture to avoid mixing incompatible optional peers with Vitest 5.
 

@@ -42,3 +42,5 @@ Log reads return a page and `next` cursor. Pass `--cursor N` for the next page; 
 Per-test console attribution is available only when the runner supplies a test identity. Jest console buffers are file-scoped and may arrive at file completion; Node output and diagnostics are file-scoped when the runner supplies file identity; unassigned stdout/stderr belongs to the run. Empty scoped logs are not proof that no output was produced. Intermediate retry failures may be unavailable even when a final retry count is known. Jest uses finalized aggregate success, including reporter/coverage/snapshot failures. Ambiguous retry updates for generated duplicate names may arrive only with the file-completion report.
 
 A failed, interrupted, empty, or error run is not successful verification. Check final process exit and capture/collection notices as well as test counts. No-test or skip/todo-only runs must be reported explicitly. Preserve the helper's actual exit code.
+
+Paseo app and daemon compatibility: `>=0.11.2 <0.14.0`; SDK checks include 0.11.2, 0.12.0, 0.13.1 and 0.13.2.

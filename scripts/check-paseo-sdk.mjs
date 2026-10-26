@@ -1,7 +1,10 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { root, exec, npmCommand } from "./package.mjs";
-const version = "0.11.2";
+const version = process.argv[2] ?? "0.11.2";
+if (!["0.11.2", "0.12.0", "0.13.1", "0.13.2"].includes(version)) {
+  throw Error(`Unsupported SDK verification target: ${version}`);
+}
 await mkdir(join(root, "work"), { recursive: true });
 const scratch = await mkdtemp(join(root, "work/paseo-sdk-check-"));
 try {
@@ -52,7 +55,7 @@ try {
     { timeout: 120000 },
   );
   console.log(
-    `Client/server/shared typecheck against Paseo ${version}; locked 0.12 tooling unchanged`,
+    `Client/server/shared typecheck against Paseo ${version}; locked development tooling unchanged`,
   );
 } catch (error) {
   if (error.stdout) process.stderr.write(error.stdout);

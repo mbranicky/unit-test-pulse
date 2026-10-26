@@ -43,6 +43,16 @@ jobs:
         if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
         run: npm run typecheck:paseo-011
 
+      - name: Type check Paseo 0.13.1 and 0.13.2 SDKs
+        if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
+        run: npm run typecheck:paseo-013
+
+      - name: Verify publication gates without running release lifecycle scripts
+        if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
+        run: |
+          npm install --prefix "$RUNNER_TEMP/unit-test-pulse-publish-npm" --ignore-scripts --no-audit --no-fund npm@11.13.0
+          PATH="$RUNNER_TEMP/unit-test-pulse-publish-npm/node_modules/.bin:$PATH" python3 -m unittest discover -s scripts -p 'test_npm_release.py'
+
       # Run both suites even if an earlier check fails, once setup succeeds.
       # Their failures still fail the job; cancellation stops further work.
       - name: Run all unit tests
