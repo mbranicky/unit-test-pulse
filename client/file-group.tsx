@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Icon } from "@getpaseo/plugin/client/react-native";
 import type { PulseFile, PulseTest } from "../shared/rpc";
@@ -25,11 +25,11 @@ export function FileGroup({
   onLogs(test?: PulseTest): void;
   onLoad(): void;
 }) {
-  const [open, setOpen] = useState(
-    file.failed > 0 ||
-      ["running", "queued"].includes(file.status) ||
-      file.errors.length > 0,
-  );
+  const hasFailure = file.failed > 0 || file.errors.length > 0;
+  const [open, setOpen] = useState(hasFailure);
+  useEffect(() => {
+    setOpen(hasFailure);
+  }, [hasFailure]);
   const relative = file.file.startsWith(root)
     ? file.file.slice(root.length + 1)
     : file.file;
