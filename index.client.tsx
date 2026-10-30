@@ -1,6 +1,6 @@
 import type { PluginClientContext } from "@getpaseo/plugin/client";
 import { PulsePanel } from "./client/panel";
-import { watchHeaders } from "./client/header";
+import { watchComposerPills } from "./client/composer-pills";
 import { DiagnosticSettings } from "./client/settings";
 export default function contribute(client: PluginClientContext) {
   const settings = client.addSettingsScreen({
@@ -32,7 +32,7 @@ export default function contribute(client: PluginClientContext) {
       openPanel("pulse", { location: "explorer" });
     },
   });
-  const stop = watchHeaders(client);
+  const stop = watchComposerPills(client);
   return () => {
     stop();
     void command();
