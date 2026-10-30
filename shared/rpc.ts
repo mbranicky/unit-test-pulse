@@ -77,6 +77,8 @@ const workspace = z.object({ workspaceId: z.string().min(1) });
 const identity = workspace.extend({
   runId: z.string().regex(/^[a-f0-9]{32}$/),
 });
+export const FILE_PAGE_SIZE = 25;
+export const TEST_PAGE_SIZE = 200;
 export const dashboard = defineRpc({
   name: "dashboard.read",
   input: workspace.extend({
@@ -90,6 +92,7 @@ export const dashboard = defineRpc({
     runs: z.array(runSchema),
     selectedId: z.string().nullable(),
     matching: z.number(),
+    matchingFiles: z.number(),
     next: z.number().nullable(),
     notices: z.array(z.string()),
     helper: z.string().nullable(),

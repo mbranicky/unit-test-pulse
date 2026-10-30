@@ -1,6 +1,8 @@
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import {
   dashboard,
+  FILE_PAGE_SIZE,
+  TEST_PAGE_SIZE,
   briefs,
   diagnostics,
   logs,
@@ -66,6 +68,38 @@ export default function contribute(server: PluginServerContext) {
             (({ running: 0, failed: 1, queued: 2 })[a.status as string] ?? 3) -
             ({ running: 0, failed: 1, queued: 2 }[b.status as string] ?? 3),
         ) || [];
+    // Page the units the list actually displays. Keep a separate test page
+    // when a user focuses one file, and bound inline test payloads in both modes.
+    const matchingFileIds = new Set(matching.map((test: any) => test.fileId));
+    const search = input.search.toLowerCase();
+    const fileRank = (status: string) =>
+      status === "running" ? 0 : ["failed", "error"].includes(status) ? 1 : 2;
+    const matchingFiles = (selected?.files || [])
+      .filter(
+        (file: any) =>
+          (!input.fileId || file.id === input.fileId) &&
+          (input.filter !== "failed" ||
+            file.failed > 0 ||
+            file.errors.length > 0) &&
+          (input.filter === "all" ||
+            input.filter === "failed" ||
+            matchingFileIds.has(file.id)) &&
+          (!search ||
+            `${file.file} ${file.project}`.toLowerCase().includes(search) ||
+            matchingFileIds.has(file.id)),
+      )
+      .sort((a: any, b: any) => fileRank(a.status) - fileRank(b.status));
+    const pageSize = input.fileId ? TEST_PAGE_SIZE : FILE_PAGE_SIZE;
+    const pageFiles = input.fileId
+      ? matchingFiles
+      : matchingFiles.slice(input.offset, input.offset + pageSize);
+    const pageFileIds = new Set(pageFiles.map((file: any) => file.id));
+    const pageTests = input.fileId
+      ? matching.slice(input.offset, input.offset + pageSize)
+      : matching
+          .filter((test: any) => pageFileIds.has(test.fileId))
+          .slice(0, TEST_PAGE_SIZE);
+    const itemCount = input.fileId ? matching.length : matchingFiles.length;
     const visible = runs.slice(0, 30);
     if (selected && !visible.some((run: any) => run.id === selected.id))
       visible.push(selected);
@@ -77,22 +111,25 @@ export default function contribute(server: PluginServerContext) {
           errors: run.errors.map(briefError),
           files:
             run === selected
-              ? run.files.map((f: any) => ({
+              ? pageFiles.map((f: any) => ({
                   ...f,
                   errors: f.errors.map(briefError),
                 }))
               : [],
           tests:
             run === selected
-              ? matching
-                  .slice(input.offset, input.offset + 200)
-                  .map((t: any) => ({ ...t, errors: t.errors.map(briefError) }))
+              ? pageTests.map((t: any) => ({
+                  ...t,
+                  errors: t.errors.map(briefError),
+                }))
               : [],
         };
       }),
       selectedId: selected?.id || null,
       matching: matching.length,
-      next: input.offset + 200 < matching.length ? input.offset + 200 : null,
+      matchingFiles: matchingFiles.length,
+      next:
+        input.offset + pageSize < itemCount ? input.offset + pageSize : null,
       notices: [...notices, ...(helperError ? [helperError] : [])],
       helper,
     };
