@@ -10,7 +10,13 @@ import {
   type PluginWorkspacePanelProps,
 } from "@getpaseo/plugin/client";
 import { useQuery } from "@tanstack/react-query";
-import { dashboard, diagnostics, specSource } from "../shared/rpc";
+import {
+  dashboard,
+  diagnostics,
+  specSource,
+  FILE_PAGE_SIZE,
+  TEST_PAGE_SIZE,
+} from "../shared/rpc";
 import { Action, Divider, StatusIcon, tone, live, basename } from "./ui";
 import { AgentSetup } from "./setup";
 import { RunSummary } from "./run-summary";
@@ -80,7 +86,15 @@ export function PulsePanel({
   });
   useEffect(() => {
     setOffset(0);
-  }, [filter, search, fileId, selected]);
+  }, [
+    filter,
+    search,
+    fileId,
+    selected,
+    host.id,
+    workspaceId,
+    query.data?.selectedId,
+  ]);
   useEffect(() => {
     setSelected(undefined);
     setDetail(null);
@@ -132,23 +146,8 @@ export function PulsePanel({
       setDetail({ title: "Source unavailable", text: String(error) });
     }
   }
-  const rank = (status: string) =>
-    status === "running" ? 0 : ["failed", "error"].includes(status) ? 1 : 2;
-  const files = (run?.files || [])
-    .filter(
-      (f) =>
-        (!fileId || f.id === fileId) &&
-        (filter !== "failed" || f.failed > 0 || f.errors.length > 0) &&
-        (filter === "all" ||
-          filter === "failed" ||
-          run?.tests.some((t) => t.fileId === f.id)) &&
-        (!search ||
-          `${f.file} ${f.project}`
-            .toLowerCase()
-            .includes(search.toLowerCase()) ||
-          run?.tests.some((t) => t.fileId === f.id)),
-    )
-    .sort((a, b) => rank(a.status) - rank(b.status));
+  const files = run?.files || [];
+  const pageSize = fileId ? TEST_PAGE_SIZE : FILE_PAGE_SIZE;
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface0 }}>
       <View
@@ -457,14 +456,15 @@ export function PulsePanel({
               }}
             >
               <Text style={{ color: colors.foregroundMuted, fontSize: 11 }}>
-                {data?.matching || 0} matching tests · page{" "}
-                {Math.floor(offset / 200) + 1}
+                {fileId ? data?.matching || 0 : data?.matchingFiles || 0}{" "}
+                matching {fileId ? "tests" : "files"} · page{" "}
+                {Math.floor(offset / pageSize) + 1}
               </Text>
               {offset > 0 ? (
                 <Action
                   label="Previous"
                   colors={colors}
-                  onPress={() => setOffset(Math.max(0, offset - 200))}
+                  onPress={() => setOffset(Math.max(0, offset - pageSize))}
                 />
               ) : null}
               {data?.next !== null && data?.next !== undefined ? (
