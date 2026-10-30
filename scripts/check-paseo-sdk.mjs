@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { root, exec, npmCommand } from "./package.mjs";
 const version = process.argv[2] ?? "0.11.2";
-if (!["0.11.2", "0.12.0", "0.13.1", "0.13.2"].includes(version)) {
+if (!["0.11.2", "0.12.0", "0.13.1", "0.13.2", "0.14.0"].includes(version)) {
   throw Error(`Unsupported SDK verification target: ${version}`);
 }
 await mkdir(join(root, "work"), { recursive: true });
