@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.0.2
+
+- Restore installation on Paseo 0.14 with a verified `>=0.11.2 <0.15.0` compatibility range. Retain the locked 0.12.0 development SDK, minimum 0.11.2 checks and previous 0.13 SDK checks; add exact 0.14.0 SDK verification to CI.
+- Verify isolated 0.14.0 daemon activation, live results, failure diagnostics, source previews, logs, search, persistent history, skill links and reload during execution. Verify panel rendering and command registration in the installed 0.14.0 macOS app.
+- Collapse healthy queued, running and completed test files by default. Expand files when failures or file errors arrive, collapse on recovery, and preserve manual toggles between failure transitions. Add 13 React component regression cases, including large-suite pages with unloaded test details.
+
 ## 1.0.1
 
 - Restore installation on Paseo 0.13 with a verified `>=0.11.2 <0.14.0` compatibility range. Preserve the locked 0.12.0 development SDK and 0.11.2 minimum checks; add exact 0.13.1 and 0.13.2 SDK checks to CI.
