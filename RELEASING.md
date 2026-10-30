@@ -1,6 +1,6 @@
 # Release procedure
 
-Prepare and verify the final source, documentation and exact package before creating a release tag or publishing. A version change, push, tag, GitHub release, npm publication and registry submission require their corresponding maintainer authorization. Preparation does not publish the package. Work on `main` unless the maintainer explicitly requests a branch.
+Prepare and verify the final source, documentation and exact package before creating a release tag or publishing. A version change, push, tag, GitHub release, npm publication and registry submission require their corresponding maintainer authorization. Preparation does not publish the package. Implement every new feature and bug fix on a feature branch created from the latest `origin/main`, fetching origin before creating the branch. Do not implement directly on `main`.
 
 ## Finalize the candidate
 

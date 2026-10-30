@@ -115,7 +115,7 @@ Jasmine has no native watch mode, so helper/native `--watch` is rejected. Focuse
 - **Test details** shows the selected `it()` / `test()` declaration above its report, with original line numbers, **Copy source**, and **Open full file**. Nested suites, standard modifiers, aliases imported from Vitest/Jest/Mocha/Bun/Jasmine/Node, CommonJS Mocha/Bun/Jasmine/Node aliases, context subtests, and parameterized tests with runner locations are supported. Older runs use an unambiguous title-path match. Generated/custom declarations that cannot be matched show an explanation and full-file access.
 - Click a filename for a read-only preview of its current contents with line numbers. The file may have changed since execution. Source reads are restricted to files reported by the run, within the selected workspace, up to 1 MiB.
 - **Run output** contains stdout/stderr plus separately captured console records. Log views support text search, stream filters, following the latest 100 records, pausing to browse pages, and copying a page.
-- The workspace header indicates active runs and recent outcomes even when the panel is closed.
+- A composer pill above the prompt shows active runs and recent outcomes even when the panel is closed. It follows existing pills and opens Unit Test Pulse without a spinning icon.
 
 <details>
 <summary>Recent runs across test runners</summary>
