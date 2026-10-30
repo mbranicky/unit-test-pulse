@@ -1,6 +1,6 @@
 # Unit Test Pulse
 
-Unit Test Pulse follows JavaScript and TypeScript unit tests beside your Paseo agents. The workspace panel shows live results grouped by file, failure messages, stack traces, assertion details, current source previews, and captured logs. A header indicator keeps execution visible when the panel is closed.
+Unit Test Pulse follows JavaScript and TypeScript unit tests beside your Paseo agents. The workspace panel shows live results grouped by file, failure messages, stack traces, assertion details, current source previews, and captured logs. A pill above the agent prompt keeps execution visible when the panel is closed and opens the test panel. It follows existing composer pills and uses a static status icon.
 
 Version 1.0.2 integrates with Vitest 4/5, Jest 30, Mocha 11/12, Bun 1.4.3+, Jasmine 6/7, and Node.js 22.18+/24 built-in tests through a local helper. Vitest/Jest/Mocha/Jasmine use the tested project's installed runner; Node tests use the helper's Node executable without installing a framework. Bun uses an existing executable from the project or PATH, or an explicitly configured path. The panel's optional agent skill explains how to launch monitored tests while retaining the project's normal environment and prerequisites. Existing uninstrumented commands cannot be attached after launch.
 
