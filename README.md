@@ -4,7 +4,7 @@
 
 Follow JavaScript and TypeScript unit tests in Paseo while an agent works. Inspect live results grouped by test file, assertion failures, stack traces, current source, and captured output from the same panel.
 
-Version **1.0.3** monitors Vitest, Jest, Mocha, Bun, Jasmine, and Node.js built-in tests. See the [release notes](RELEASE_NOTES.md#103) for changes and the compatibility table below for tested versions.
+Version **1.0.4** monitors Vitest, Jest, Mocha, Bun, Jasmine, and Node.js built-in tests. See the [release notes](RELEASE_NOTES.md#104) for changes and the compatibility table below for tested versions.
 
 <p>
   <img src="assets/running.png" width="360" alt="Unit Test Pulse showing completed outcomes and a test still running in the storefront example">
@@ -22,18 +22,18 @@ These are real Paseo 0.12.0 desktop captures on macOS, using an isolated storefr
 
 ## Get started
 
-Use Paseo app and daemon `>=0.11.2 <0.15.0`, with Node.js `^22.18.0` or `^24.0.0` on the daemon host. The tested project supplies its runner; Bun projects need an existing supported Bun executable.
+Use Paseo app and daemon `>=0.11.2 <0.16.0`, with Node.js `^22.18.0` or `^24.0.0` on the daemon host. The tested project supplies its runner; Bun projects need an existing supported Bun executable.
 
-Install version 1.0.3 from npm:
+Install version 1.0.4 from npm:
 
 ```sh
-paseo plugin install npm:paseo-unit-test-pulse@1.0.3
+paseo plugin install npm:paseo-unit-test-pulse@1.0.4
 ```
 
 Or select the Git release:
 
 ```sh
-paseo plugin install git:mbranicky/unit-test-pulse --ref v1.0.3
+paseo plugin install git:mbranicky/unit-test-pulse --ref v1.0.4
 ```
 
 For development, install a local checkout after preparing its dependencies:
@@ -44,7 +44,7 @@ npm run setup:compat
 paseo plugin install /absolute/path/to/unit-test-pulse
 ```
 
-For an existing npm installation, select this release with `paseo plugin update unit-test-pulse --version 1.0.3`. For an existing Git installation, use `paseo plugin update unit-test-pulse --ref v1.0.3`. Use `paseo plugin update unit-test-pulse` to review the latest available update from its installation source. Package acquisition installs the locked production dependencies; Git installations declare the same preparation in their manifest. Runtime activation copies the helper and its bundled WebSocket dependency locally and does not download a test runner.
+For an existing npm installation, select this release with `paseo plugin update unit-test-pulse --version 1.0.4`. For an existing Git installation, use `paseo plugin update unit-test-pulse --ref v1.0.4`. Use `paseo plugin update unit-test-pulse` to review the latest available update from its installation source. Package acquisition installs the locked production dependencies; Git installations declare the same preparation in their manifest. Runtime activation copies the helper and its bundled WebSocket dependency locally and does not download a test runner.
 
 Open **Unit Test Pulse** in a workspace through the Command Center. Choose **Install skill** to make its instructions available to new agent sessions. Existing skill files owned by another installation are left unchanged.
 
@@ -149,7 +149,7 @@ Retry counts and final errors are preserved when provided. Intermediate attempt 
 
 | Component            | Integration target       | Verified locally                                                |
 | -------------------- | ------------------------ | --------------------------------------------------------------- |
-| Paseo app and daemon | `>=0.11.2 <0.15.0`       | Desktop 0.12.0/0.13.1/0.14.0 on macOS; SDK 0.11.2/0.12.0/0.13.1/0.13.2/0.14.0 |
+| Paseo app and daemon | `>=0.11.2 <0.16.0`       | Desktop 0.12.0/0.13.1/0.14.0/0.15.0 on macOS; SDK 0.11.2/0.12.0/0.13.1/0.13.2/0.14.0/0.15.0 |
 | Helper Node.js       | `^22.18.0` or `^24.0.0`  | 22.18.0 and 24.16.0                                             |
 | Vitest               | 4.x and 5.x              | 4.1.11 and 5.0.4                                                |
 | Jest                 | 30.x                     | 30.5.2                                                          |
@@ -160,7 +160,7 @@ Retry counts and final errors are preserved when provided. Intermediate attempt 
 
 Vitest 4.1.11 and 5.0.4 contain a task-update timer edge case that can leave completed tests queued until another event or file completion. For the recognized affected implementation, the helper adds a worker preload that repairs only that timer in memory. Project files and installed dependencies are not edited; existing worker preloads are preserved. Unknown or already-fixed implementations are left unchanged. Vitest's VM module cache is bridged into the same scoped repair. Regression checks cover exact timer boundaries in fork, thread, and VM pools.
 
-The plugin typechecks against the Paseo 0.11.2, 0.12.0, 0.13.1, 0.13.2 and 0.14.0 SDKs. Isolated 0.13.1, 0.13.2 and 0.14.0 daemons verify activation, reload during a test run, live collection, persistent history, diagnostics, logs, source previews, search and skill links. The populated panel and command registration were verified in the Paseo 0.13.1 macOS app; panel rendering and command registration are also verified in the installed 0.14.0 macOS app. Test files start collapsed unless they contain failures or file errors. New failures expand the file, recovery collapses it, and manual toggles persist between failure transitions.
+The plugin typechecks against the Paseo 0.11.2, 0.12.0, 0.13.1, 0.13.2, 0.14.0 and 0.15.0 SDKs. Isolated 0.13.1, 0.13.2, 0.14.0 and 0.15.0 daemons verify activation, reload during a test run, live collection, persistent history, diagnostics, logs, source previews, search and skill links. The populated panel and command registration were verified in the Paseo 0.13.1 macOS app; panel rendering and command registration are also verified in the installed 0.14.0 and 0.15.0 macOS apps. Test files start collapsed unless they contain failures or file errors. New failures expand the file, recovery collapses it, and manual toggles persist between failure transitions.
 
 The screenshot set verifies the live desktop panel, recent runs, source and diagnostic dialogs, logs, agent setup, settings, and Ghostty/Light themes on 0.12.0.
 
@@ -182,7 +182,7 @@ Browser-mode tests, multi-project configurations, configuration-file changes dur
 
 ## Local data and limits
 
-Open **Settings** in the panel to inspect the current diagnostics and history policy. These limits are informational and fixed in version 1.0.3.
+Open **Settings** in the panel to inspect the current diagnostics and history policy. These limits are informational and fixed in version 1.0.4.
 
 <details>
 <summary>Diagnostics and history settings</summary>
@@ -197,7 +197,7 @@ Process output and structured console logs each have a 20 MiB capture budget per
 
 Runs whose project or worktree folder has been removed are omitted from workspace history without generating warnings. Their saved results are retained under the normal history policy. Missing records during cleanup are also skipped; damaged records and unexpected read errors still produce notices.
 
-Completed history is cleaned up on cycle rollover and helper exit, keeping the latest 100 cycles per project within a 500 MiB completed-history budget where possible. Active and idle-watch records are preserved. Version 1.0.3 does not impose a hard global budget on all simultaneous active runs. Capture and retention settings are informational and fixed for now.
+Completed history is cleaned up on cycle rollover and helper exit, keeping the latest 100 cycles per project within a 500 MiB completed-history budget where possible. Active and idle-watch records are preserved. Version 1.0.4 does not impose a hard global budget on all simultaneous active runs. Capture and retention settings are informational and fixed for now.
 
 Captured logs can contain application secrets. The plugin does not record the full environment and does not claim automatic secret removal. The helper and panel do not upload results. Copy/export actions use captured text, and an agent following the optional skill can read that text and send it to its configured provider. No additional cloud service or account is required by the plugin.
 
@@ -227,7 +227,7 @@ paseo plugin reload unit-test-pulse
 
 Live-progress integration checks hold a fixture test open until the observer has read persisted partial results. Delayed observation and staggered command startup exercise the former timing race without requiring a short overlap window. Polling stops when a runner exits unexpectedly and includes its output and the last snapshots in failures. Child processes are stopped before temporary fixture data is removed.
 
-The [adapter examples](https://github.com/mbranicky/unit-test-pulse/tree/v1.0.3/examples) cover Vitest, Jest, Mocha, Bun, Jasmine, and Node.js. Each project includes a cart suite with an intentional assertion failure and a separate passing pricing suite, plus logs, skips, async progress, and retries/todo where supported. Run either the native test script or its monitored equivalent from the repository root:
+The [adapter examples](https://github.com/mbranicky/unit-test-pulse/tree/v1.0.4/examples) cover Vitest, Jest, Mocha, Bun, Jasmine, and Node.js. Each project includes a cart suite with an intentional assertion failure and a separate passing pricing suite, plus logs, skips, async progress, and retries/todo where supported. Run either the native test script or its monitored equivalent from the repository root:
 
 ```sh
 npm --prefix examples/jest test

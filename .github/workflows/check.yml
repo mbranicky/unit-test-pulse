@@ -51,6 +51,10 @@ jobs:
         if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
         run: npm run typecheck:paseo-014
 
+      - name: Type check Paseo 0.15.0 SDK
+        if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
+        run: npm run typecheck:paseo-015
+
       - name: Verify publication gates without running release lifecycle scripts
         if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
         run: |
