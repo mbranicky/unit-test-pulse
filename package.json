@@ -1,6 +1,6 @@
 {
   "name": "paseo-unit-test-pulse",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "files": [
     "paseo-plugin.json",
     "npm-shrinkwrap.json",

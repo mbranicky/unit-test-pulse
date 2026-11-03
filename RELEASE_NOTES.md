@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.0.3
+
+- Add the violet Signal icon to the plugin manifest, with the editable SVG and 512 × 512 PNG included in the package for directory listings.
+- Move run status from the top toolbar to a pill above the agent prompt. Use a static status icon, append after existing pills, update in place and remove stale registrations.
+- Fix Previous/Next navigation in the test-file list. Show up to 25 matching files per page, independently of suite sizes; keep focused-file details at 200 tests per page. Reset pagination when filters, search or the selected run change, and retain zero-test import failures.
+- Add six composer-pill regression cases and ten pagination cases, bringing integration/component coverage to 162 cases alongside 35 unit tests.
+
+Runner support and the verified Paseo compatibility range remain unchanged: `>=0.11.2 <0.15.0`.
+
 ## 1.0.2
 
 - Restore installation on Paseo 0.14 with a verified `>=0.11.2 <0.15.0` compatibility range. Retain the locked 0.12.0 development SDK, minimum 0.11.2 checks and previous 0.13 SDK checks; add exact 0.14.0 SDK verification to CI.
