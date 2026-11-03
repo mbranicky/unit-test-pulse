@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.0.4
+
+- Restore installation on Paseo 0.15 with the verified `>=0.11.2 <0.16.0` app/daemon range. No client/server API adaptations or runner changes are required.
+- Add exact Paseo 0.15.0 SDK verification to CI, retaining the locked 0.12.0 development SDK, minimum 0.11.2 and previous 0.13/0.14 checks.
+- Verify isolated 0.15.0 activation, failures, pagination, source previews, logs, history and reload, plus the installed macOS app panel.
+
 ## 1.0.3
 
 - Add the violet Signal icon to the plugin manifest, with the editable SVG and 512 × 512 PNG included in the package for directory listings.
