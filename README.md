@@ -44,7 +44,7 @@ npm run setup:compat
 paseo plugin install /absolute/path/to/unit-test-pulse
 ```
 
-Use `paseo plugin update unit-test-pulse` to check the installation source for an update. Install an explicit npm version again when you need a particular release. Package acquisition installs the locked production dependencies; Git installations declare the same preparation in their manifest. Runtime activation copies the helper and its bundled WebSocket dependency locally and does not download a test runner.
+For an existing npm installation, select this release with `paseo plugin update unit-test-pulse --version 1.0.3`. For an existing Git installation, use `paseo plugin update unit-test-pulse --ref v1.0.3`. Use `paseo plugin update unit-test-pulse` to review the latest available update from its installation source. Package acquisition installs the locked production dependencies; Git installations declare the same preparation in their manifest. Runtime activation copies the helper and its bundled WebSocket dependency locally and does not download a test runner.
 
 Open **Unit Test Pulse** in a workspace through the Command Center. Choose **Install skill** to make its instructions available to new agent sessions. Existing skill files owned by another installation are left unchanged.
 
