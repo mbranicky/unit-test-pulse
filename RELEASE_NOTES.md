@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.1.0
+
+- Start the Paseo 0.16+ release line with a `>=0.16.0` app/daemon requirement and exact 0.16.0 development SDK. Use Unit Test Pulse 1.0.4 for Paseo 0.11.2 through 0.15.x.
+- Add a minimum 0.16.0 SDK CI gate while retaining legacy SDK compile guards and both Node checks. Runtime helper dependencies and runner behavior remain unchanged.
+- Verify a separate signed 0.16.0 desktop app/profile and daemon: panel rendering, 25-file pagination, test details/source, search focus, settings, live results, watch cycles, logs, history and reload. The normal Paseo installation is preserved.
+
+
 ## 1.0.4
 
 - Restore installation on Paseo 0.15 with the verified `>=0.11.2 <0.16.0` app/daemon range. No client/server API adaptations or runner changes are required.
