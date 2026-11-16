@@ -39,7 +39,7 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
-      - name: Type check minimum Paseo 0.11.2 SDK
+      - name: Type check legacy Paseo 0.11.2 SDK
         if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
         run: npm run typecheck:paseo-011
 
@@ -54,6 +54,10 @@ jobs:
       - name: Type check Paseo 0.15.0 SDK
         if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
         run: npm run typecheck:paseo-015
+
+      - name: Type check minimum Paseo 0.16.0 SDK
+        if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
+        run: npm run typecheck:paseo-016
 
       - name: Verify publication gates without running release lifecycle scripts
         if: ${{ !cancelled() && steps.compat.outcome == 'success' }}
