@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.1.1
+
+- Verify compatibility with Paseo 0.17.1 while preserving the `>=0.16.0` requirement and exact 0.16.0 development SDK. No runtime API, dependency or runner changes are required.
+- Add an exact 0.17.1 SDK check to both existing Node CI jobs, retaining previous SDK guards.
+- Verify a separate signed 0.17.1 desktop app/profile and daemon: populated panel, file pagination, search focus, test details/source, settings, logs, history, live results, native watch cycles and reload during execution. Preserve the daily installation and its stopped state.
+
 ## 1.1.0
 
 - Start the Paseo 0.16+ release line with a `>=0.16.0` app/daemon requirement and exact 0.16.0 development SDK. Use Unit Test Pulse 1.0.4 for Paseo 0.11.2 through 0.15.x.
