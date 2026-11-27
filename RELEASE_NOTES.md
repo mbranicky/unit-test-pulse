@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.1.2
+
+- Verify Paseo 0.18.1 compatibility while preserving `>=0.16.0` and the exact 0.16.0 development SDK. No runtime API, dependency, runner or design changes are required.
+- Add the exact 0.18.1 SDK guard to both existing Node CI jobs while retaining previous SDK checks.
+- Verify a separate signed 0.18.1 app/profile and daemon: panel rendering, file pagination, search focus, test details/source, settings, live/watch results, logs/history and reload during execution. Preserve the daily installation and release desktop access immediately after verification.
+
 ## 1.1.1
 
 - Verify compatibility with Paseo 0.17.1 while preserving the `>=0.16.0` requirement and exact 0.16.0 development SDK. No runtime API, dependency or runner changes are required.
